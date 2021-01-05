@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Asteroids</title>
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+    <script src="js/asteroids.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/asteroids.css">
+    <link rel="stylesheet" type="text/css" href="css/normalize.css">
+</head>
+
+<div class="container">
+    <div class="game-header">
+        <header id="scoreboard">Score:</header>
+    </div>
+
+    <div id="CanvasContainer" class="game-canvas ">
+        <canvas id="canvas" style="height:100%;width:100%"></canvas>
+    </div>
+    <div class="game-button">
+        <button type="button" name="U" class="game-button" ontouchstart="asteroids.HtmlButtonDown(this, 'touch',event) " ontouchcancel="asteroids.HtmlButtonUp(this, 'touch',event) " ontouchend="asteroids.HtmlButtonUp(this, 'touch',event)
+        " onmousedown="asteroids.HtmlButtonDown(this, 'mouse',event) " onmouseup="asteroids.HtmlButtonDown(this, 'mouse',event) ">U</button>
+    </div>
+    <div class="game-button">
+        <button type="button" name="L" class="game-button" ontouchstart="asteroids.HtmlButtonDown(this, 'touch',event) " ontouchcancel="asteroids.HtmlButtonUp(this, 'touch',event) " ontouchend="asteroids.HtmlButtonUp(this, 'touch',event)
+        " onmousedown="asteroids.HtmlButtonDown(this, 'mouse',event) " onmouseup="asteroids.HtmlButtonUp(this, 'mouse',event) ">L</button>
+    </div>
+    <div class="game-button">
+        <button type="button " name="D" class="game-button" ontouchstart="asteroids.HtmlButtonDown(this, 'touch',event) " ontouchcancel="asteroids.HtmlButtonUp(this, 'touch',event) " ontouchend="asteroids.HtmlButtonUp(this, 'touch',event)
+        " onmousedown="asteroids.HtmlButtonDown(this, 'mouse',event) " onmouseup="asteroids.HtmlButtonUp(this, 'mouse',event) ">D</button>
+    </div>
+    <div class="game-button">
+        <button type="button " name="R" class="game-button" ontouchstart="asteroids.HtmlButtonDown(this, 'touch',event) " ontouchcancel="asteroids.HtmlButtonUp(this, 'touch',event) " ontouchend="asteroids.HtmlButtonUp(this, 'touch',event)
+        " onmousedown="asteroids.HtmlButtonDown(this, 'mouse',event) " onmouseup="asteroids.HtmlButtonUp(this, 'mouse',event) ">R</button>
+    </div>
+    <div class="game-button">
+        <button type="button " name="F" class="game-button" ontouchstart="asteroids.HtmlButtonDown(this, 'touch',event) " ontouchcancel="asteroids.HtmlButtonUp(this, 'touch',event) " ontouchend="asteroids.HtmlButtonUp(this, 'touch',event)
+        " onmousedown="asteroids.HtmlButtonDown(this, 'mouse',event) " onmouseup="asteroids.HtmlButtonUp(this, 'mouse',event) ">F</button>
+    </div>
+    <div class="game-button">
+        <button type="button " name="S" class="game-button" ontouchstart="asteroids.HtmlButtonDown(this, 'touch',event) " ontouchcancel="asteroids.HtmlButtonUp(this, 'touch',event) " ontouchend="asteroids.HtmlButtonUp(this, 'touch',event)
+        " onmousedown="asteroids.HtmlButtonDown(this, 'mouse',event) " onmouseup="asteroids.HtmlButtonUp(this, 'mouse',event) ">S</button>
+    </div>
+</div>
+
+</html>

@@ -114,6 +114,7 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/submit", sendHandle)
+	StartDaifugoServer()
 
 	port := os.Getenv("PORT")
 	if port == "" {

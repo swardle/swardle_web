@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .styletable table {
+            border-collapse: collapse;
+        }
+
+        .styletable th,
+        td {
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f6f6f6
+        }
+
+        tr:hover {
+            background-color: #757575;
+        }
+
+        .styletable th {
+            background-color: #6aa3e4;
+            color: white;
+        }
+    </style>
+</head>
+
+<script>
+    function joinGame(name,numPlayer) {
+        location.replace("/dcreateplayer.html?gameName="+encodeURIComponent(name))
+    }
+
+    function killGame(name) {
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/killDaifugoGame";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                LoadGameTable()
+            }
+        };
+        json = JSON.stringify({ "name": name })
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xmlhttp.send(json);
+    }
+
+    function LoadGameTable() {
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/daifugoGames.json";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                var games = JSON.parse(this.responseText);
+                renderGamesTable(games);
+            }
+        };
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+    }
+
+    function renderGamesTable(games) {
+        e = document.getElementById("gamesTable");
+        if (e !== null) {
+            var str = "";
+            var i;
+            for (i = 0; i < games.length; i++) {
+                g = games[i];
+                str += '<tr>';
+                str += '<td><button onclick="joinGame(\'' + g.name + ','+g.numPlayers+'\')">Join Game</button></td>';
+                str += '<td><button onclick="killGame(\'' + g.name + '\')">Kill Game</button></td>';
+                str += '<td>' + g.name + '</td>';
+                str += '<td>' + g.numPlayers + '</td>';
+                str += '<td>' + g.maxPlayers + '</td>';
+                str += '<td>' + g.state + '</td>';
+                str += '</tr>';
+            }
+            e.innerHTML = str
+        }
+    }
+
+
+    function renderRandomName(name) {
+        e = document.getElementById("playerName");
+        if (e !== null) {
+            e.value = name.name
+        }
+    }
+
+    function LoadRandomName() {
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/randomName.json";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                var name = JSON.parse(this.responseText);
+                renderRandomName(name);
+            }
+        };
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+    }
+
+
+    window.onload = function () {
+        var element = document.getElementById("seed");
+        if (element !== null) {
+            r = Math.floor(Math.random() * Math.pow(2, 32));
+            element.value = r
+        }
+        element = document.getElementById("gamesTable");
+        if (element !== null) {
+            LoadGameTable()
+        }
+        element = document.getElementById("playerName");
+        if (element !== null) {
+            LoadRandomName()
+        }
+    };
+</script>
+
+<body>
+
+    <h2>Set you player name</h2>
+
+    <label for="playerName">Player Name:</label>
+    <input type="text" id="playerName" name="playerName" value=""><br>
+
+    <h2>Create a game</h2>
+
+    <form action="/createDaifugoGame" method="post">
+        <label for="name">Game Name:</label>
+        <input type="text" id="name" name="name" value="MyGameName1"><br>
+        <label for="numPlayers">NumPlayers:</label>
+        <input type="number" id="numPlayers" name="numPlayers" max="6" min="3" value="4"><br>
+        <label for="seed">Seed:</label>
+        <input type="number" id="seed" name="seed" value="4"><br>
+        <input type="submit" value="Create New Game">
+    </form>
+
+
+    <h2>Games</h2>
+
+    <table>
+        <tr style="width:50%" class="styletable">
+            <th style="width:10%">Join</th>
+            <th style="width:10%">Kill</th>
+            <th style="width:40%">Game Name</th>
+            <th style="width:10%">Players</th>
+            <th style="width:10%">Max Players</th>
+            <th style="width:20%">Status</th>
+        </tr>
+        <tbody id="gamesTable">
+            <tr>
+                <td><button onclick="joinGame('Jill')">Join Game</button></td>
+                <td>Jill</td>
+                <td>3</td>
+                <td>4</td>
+                <td>not started</td>
+            </tr>
+            <tr>
+                <td><button onclick="joinGame('Scott')">Join Game</button></td>
+                <td>Scott</td>
+                <td>3</td>
+                <td>4</td>
+                <td>not started</td>
+            </tr>
+            <tr>
+                <td><button disabled onclick="joinGame('Seiko')">Join Game</button></td>
+                <td>Seiko</td>
+                <td>4</td>
+                <td>4</td>
+                <td>started</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+
+</html>

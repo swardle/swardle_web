@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .styletable table {
+            border-collapse: collapse;
+        }
+
+        .styletable th,
+        td {
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f6f6f6
+        }
+
+        tr:hover {
+            background-color: #757575;
+        }
+
+        .styletable th {
+            background-color: #6aa3e4;
+            color: white;
+        }
+    </style>
+
+<script>
+
+
+    window.onload = function () {
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const gameName = urlParams.get('gameName');
+        let e = document.getElementById("gameName");
+        if (e !== null) {
+            e.value = gameName
+        }
+        e = document.getElementById("playerName");
+        if (e !== null) {
+            LoadRandomName()
+        }
+    };
+</script>
+
+</head>
+<body>
+
+    <h2>Create Player and Join Game</h2>
+
+    <form action="/joinDaifugoGame">
+        <label for="gameName">Game Name:</label>
+        <input type="text" id="gameName" name="gameName" value="MyGameName1"><br>
+        <label for="playerName">Player Name:</label>
+        <input type="text" id="playerName" name="playerName" value="MyPlayerName1"><br>
+        <input type="submit" value="Join Game">
+    </form>
+
+
+</body>
+
+</html>

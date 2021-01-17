@@ -29,8 +29,27 @@
 </head>
 
 <script>
-    function joinGame(name,numPlayer) {
-        location.replace("/dcreateplayer.html?gameName="+encodeURIComponent(name))
+    function joinGame(gameName) {
+        data = { 
+            "playerName" : document.getElementById("playerName").value,
+            "gameName" : gameName,
+        }
+
+        json = JSON.stringify(data)
+
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/joinDaifugoGame";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                //var name = JSON.parse(this.responseText);
+                window.location.replace("/template/dgame.html");
+            }
+        };
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xmlhttp.send(json);
+
     }
 
     function killGame(name) {
@@ -70,7 +89,7 @@
             for (i = 0; i < games.length; i++) {
                 g = games[i];
                 str += '<tr>';
-                str += '<td><button onclick="joinGame(\'' + g.name + ','+g.numPlayers+'\')">Join Game</button></td>';
+                str += '<td><button onclick="joinGame(\'' + g.name + '\')">Join Game</button></td>';
                 str += '<td><button onclick="killGame(\'' + g.name + '\')">Kill Game</button></td>';
                 str += '<td>' + g.name + '</td>';
                 str += '<td>' + g.numPlayers + '</td>';
@@ -104,6 +123,31 @@
         xmlhttp.send();
     }
 
+    
+    function createDaifugoGame(event) {
+        data = { 
+            playerName : document.getElementById("playerName").value,
+            gameName : document.getElementById("gameName").value,
+            numPlayers : parseInt(document.getElementById("numPlayers").value),
+            seed : parseInt(document.getElementById("seed").value),
+        }
+
+        json = JSON.stringify(data)
+
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/createDaifugoGame";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                //var name = JSON.parse(this.responseText);
+                window.location.replace("/template/dgame.html");
+            }
+        };
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xmlhttp.send(json);
+    }
+
 
     window.onload = function () {
         var element = document.getElementById("seed");
@@ -131,15 +175,15 @@
 
     <h2>Create a game</h2>
 
-    <form action="/createDaifugoGame" method="post">
+    <form id="createDaifugoGame" >
         <label for="name">Game Name:</label>
-        <input type="text" id="name" name="name" value="MyGameName1"><br>
+        <input type="text" id="gameName" name="name" value="MyGameName1"><br>
         <label for="numPlayers">NumPlayers:</label>
         <input type="number" id="numPlayers" name="numPlayers" max="6" min="3" value="4"><br>
         <label for="seed">Seed:</label>
         <input type="number" id="seed" name="seed" value="4"><br>
-        <input type="submit" value="Create New Game">
     </form>
+    <button type="submit" value="Create New Game" onclick="createDaifugoGame(event);" >Create Game</button>
 
 
     <h2>Games</h2>

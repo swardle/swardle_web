@@ -425,7 +425,8 @@ var (
 )
 
 type createGameForm struct {
-	Name       string `json:"name"`
+	GameName   string `json:"gameName"`
+	PlayerName string `json:"playerName"`
 	NumPlayers int    `json:"numPlayers"`
 	Seed       int64  `json:"seed"`
 }
@@ -438,7 +439,7 @@ func addGame(f createGameForm) error {
 		g.rand = rand.New(rand.NewSource(f.Seed))
 	}
 	g.lock = &sync.RWMutex{}
-	g.name = f.Name
+	g.name = f.GameName
 	g.deck = make([]card, 52, 52)
 	g.state = "notStarted"
 	for i := range g.deck {
@@ -454,6 +455,9 @@ func addGame(f createGameForm) error {
 	if _, ok := gGames[g.name]; ok {
 		return errors.New("game exists")
 	}
+	player := newPlayer(f.PlayerName)
+	g.players[0] = player
+	g.playingPlayers[0] = player
 
 	gGames[g.name] = g
 
@@ -511,6 +515,7 @@ func joinGame(f joinGameForm) error {
 			g.players[i] = player
 			g.playingPlayers[i] = player
 			foundFree = true
+			break
 		}
 	}
 
@@ -722,32 +727,27 @@ func addGamePost(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := req.ParseForm()
+	d := json.NewDecoder(req.Body)
+	// bytes, err := ioutil.ReadAll(req.Body)
+	// fmt.Println(string(bytes))
+	d.DisallowUnknownFields() // catch unwanted fields
+
+	t := createGameForm{}
+	err := d.Decode(&t)
 	if err != nil {
+		// bad JSON or unrecognized json field
+		fmt.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	name := req.Form.Get("name")
-	numPlayersStr := req.Form.Get("numPlayers")
-	seedStr := req.Form.Get("seed")
-
-	numPlayers, err := strconv.Atoi(numPlayersStr)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
+	// optional extra check
+	if d.More() {
+		http.Error(rw, "extraneous data after JSON object", http.StatusBadRequest)
 		return
 	}
-	seed, err := strconv.ParseInt(seedStr, 10, 64)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	t := createGameForm{Name: name, NumPlayers: numPlayers, Seed: seed}
 
 	// got the input we expected: no more, no less
 	addGame(t)
-	http.Redirect(rw, req, "/template/dgame.html", 301)
 }
 
 type gameJSON struct {

@@ -25,11 +25,125 @@
             background-color: #6aa3e4;
             color: white;
         }
+
+        .red {
+            color: #8C001A;
+        }
+
+        .black {
+            color: black;
+        }
+
+        .backofcard {
+            color: #999999;
+        }
+
+        .fontcard {
+            display: inline-block;
+            text-align: center;
+
+            font-size: 100px;
+        }
+
+        #otherplayers * {
+            box-sizing: border-box;
+        }
+
+        /* Create two equal columns that floats next to each other */
+        .column {
+            float: left;
+            width: 20%;
+            padding: 5px;
+        }
+
+        /* Clear floats after the columns */
+        .row:after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
     </style>
+
+
 </head>
+
+<script>
+
+</script>
+
 <body>
 
-    <h2>play a game</h2>
+
+    <div id="otherplayers">
+        <div class="row">
+            <div class="column" style="background-color:#aaa;">
+                <h2>Column 1</h2>
+                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+                <span class="fontcard black">&#127137</span>
+                <span class="fontcard red">&#127153</span>
+                <span class="fontcard red">&#127169</span>
+                <span class="fontcard black">&#127185</span>
+            </div>
+            <div class="column" style="background-color:#aaa;">
+                <h2>Column 2</h2>
+                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+                <span class="fontcard black">&#127137</span>
+                <span class="fontcard red">&#127153</span>
+                <span class="fontcard red">&#127169</span>
+                <span class="fontcard black">&#127185</span>
+            </div>
+            <div class="column" style="background-color:#aaa;">
+                <h2>Column 3</h2>
+                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+                <span class="fontcard black">&#127137</span>
+                <span class="fontcard red">&#127153</span>
+                <span class="fontcard red">&#127169</span>
+                <span class="fontcard black">&#127185</span>
+            </div>
+            <div class="column" style="background-color:#aaa;">
+                <h2>Column 4</h2>
+                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+                <span class="fontcard black">&#127137</span>
+                <span class="fontcard red">&#127153</span>
+                <span class="fontcard red">&#127169</span>
+                <span class="fontcard black">&#127185</span>
+            </div>
+            <div class="column" style="background-color:#aaa;">
+                <h2>Column 5</h2>
+                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+                <span class="fontcard black">&#127137</span>
+                <span class="fontcard red">&#127153</span>
+                <span class="fontcard red">&#127169</span>
+                <span class="fontcard black">&#127185</span>
+            </div>
+        </div>
+    </div>
+
+    <h2>pile</h2>
+
+    <div id="pile">
+        <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+        <span class="fontcard black">&#127137</span>
+        <span class="fontcard red">&#127153</span>
+        <span class="fontcard red">&#127169</span>
+        <span class="fontcard black">&#127185</span>
+</div>
+
+    <h2>Your hand</h2>
+
+    <label for="playerName">Player Name:</label>
+    <input type="text" id="playerName" name="playerName" value=""><br>
+
+    <h2></h2>
+
+    <div id="yourhand">
+        <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
+        <span class="fontcard black">&#127137</span>
+        <span class="fontcard red">&#127153</span>
+        <span class="fontcard red">&#127169</span>
+        <span class="fontcard black">&#127185</span>
+</div>
 
 </body>
 

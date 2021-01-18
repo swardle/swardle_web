@@ -43,10 +43,10 @@ func (t stateType) String() string {
 type suitType int
 
 const (
-	club    suitType = 0
-	spade            = 1
-	diamond          = 2
+	spade   suitType = 1
 	heart            = 3
+	diamond          = 2
+	club             = 0
 )
 
 func (t suitType) String() string {
@@ -159,23 +159,24 @@ func (c card) isSame(b card) bool {
 }
 
 type player struct {
-	name   string
-	cards  []card
-	myTurn bool
-	title  titleType
-	isOut  bool
+	Name   string    `json:"name"`
+	Cards  []card    `json:"cards"`
+	MyTurn bool      `json:"myTurn"`
+	Title  titleType `json:"title"`
+	IsOut  bool      `json:"isOut"`
 }
 
 func newPlayer(name string) *player {
 	p := new(player)
-	p.name = name
+	p.Name = name
+	p.Cards = make([]card, 0, 14)
 	return p
 }
 
 func (p player) inHand(cards []card) error {
 	// do you have these cards in your hand
 	numFound := 0
-	for _, inhand := range p.cards {
+	for _, inhand := range p.Cards {
 		for _, toplay := range cards {
 			if inhand.isSame(toplay) {
 				numFound++
@@ -231,18 +232,18 @@ func (t gameActionType) String() string {
 }
 
 type actionType struct {
-	turnAction   turnActionType
-	gameAction   gameActionType
-	isSkip       bool
-	isRevolution bool
+	TurnAction   turnActionType `json:"turnAction"`
+	GameAction   gameActionType `json:"gameAction"`
+	IsSkip       bool           `json:"isSkip"`
+	IsRevolution bool           `json:"isRevolution"`
 }
 
 func newAction(turnAction turnActionType, gameAction gameActionType) actionType {
 	a := actionType{}
-	a.turnAction = turnAction
-	a.gameAction = gameAction
-	a.isSkip = false
-	a.isRevolution = false
+	a.TurnAction = turnAction
+	a.GameAction = gameAction
+	a.IsSkip = false
+	a.IsRevolution = false
 	return a
 }
 
@@ -253,7 +254,7 @@ type game struct {
 	players        []*player
 	playingPlayers []*player
 	deck           []card
-	plile          [][]card
+	pile           [][]card
 	lock           *sync.RWMutex
 	isRevolution   bool
 	lastAction     actionType
@@ -261,7 +262,7 @@ type game struct {
 
 func (g game) findPlayer(name string) *player {
 	for _, p := range g.players {
-		if p.name == name {
+		if p.Name == name {
 			return p
 		}
 	}
@@ -270,7 +271,7 @@ func (g game) findPlayer(name string) *player {
 
 func (g game) findPlayerIndex(name string) int {
 	for i, p := range g.players {
-		if p.name == name {
+		if p.Name == name {
 			return i
 		}
 	}
@@ -279,7 +280,7 @@ func (g game) findPlayerIndex(name string) int {
 
 func (g game) removePlayingPlayer(name string) {
 	for i, p := range g.playingPlayers {
-		if p.name == name {
+		if p.Name == name {
 			copy(g.playingPlayers[i:], g.playingPlayers[i+1:])            // Shift p.cards[i+1:] left one index.
 			g.playingPlayers[len(g.playingPlayers)-1] = nil               // Erase last element (write zero value).
 			g.playingPlayers = g.playingPlayers[:len(g.playingPlayers)-1] // Truncate slice.
@@ -293,7 +294,7 @@ func (g game) doAction(p player, cards []card, a actionType) {
 	// remove the cards played
 	// find the indexs of the cards to delete
 	toDelete := make([]int, 0, 4)
-	for i, inhand := range p.cards {
+	for i, inhand := range p.Cards {
 		for _, toplay := range cards {
 			if inhand.isSame(toplay) {
 				toDelete = append(toDelete, i)
@@ -307,39 +308,39 @@ func (g game) doAction(p player, cards []card, a actionType) {
 	}
 
 	// delete the items from the players hand
-	for i := range p.cards {
-		copy(p.cards[i:], p.cards[i+1:])   // Shift p.cards[i+1:] left one index.
-		p.cards[len(p.cards)-1] = card{}   // Erase last element (write zero value).
-		p.cards = p.cards[:len(p.cards)-1] // Truncate slice.
+	for i := range p.Cards {
+		copy(p.Cards[i:], p.Cards[i+1:])   // Shift p.cards[i+1:] left one index.
+		p.Cards[len(p.Cards)-1] = card{}   // Erase last element (write zero value).
+		p.Cards = p.Cards[:len(p.Cards)-1] // Truncate slice.
 	}
 
-	// add the cards to the top of the plile
-	g.plile = append([][]card{cards}, g.plile...)
+	// add the cards to the top of the pile
+	g.pile = append([][]card{cards}, g.pile...)
 
 	g.lastAction = a
-	if a.isRevolution {
+	if a.IsRevolution {
 		g.isRevolution = true
 	}
 
 	// give the turn to the next person
-	i := g.findPlayerIndex(p.name)
+	i := g.findPlayerIndex(p.Name)
 	pNext := g.playingPlayers[(i+1)%len(g.playingPlayers)]
 
 	// end this players turn
-	p.myTurn = false
+	p.MyTurn = false
 	// remove current player if out
-	if a.gameAction == playerOut {
-		p.isOut = true
-		g.removePlayingPlayer(p.name)
+	if a.GameAction == playerOut {
+		p.IsOut = true
+		g.removePlayingPlayer(p.Name)
 	}
 
 	// skip player if skipped
-	i = g.findPlayerIndex(pNext.name)
-	if a.isSkip {
+	i = g.findPlayerIndex(pNext.Name)
+	if a.IsSkip {
 		pNext = g.playingPlayers[(i+1)%len(g.playingPlayers)]
 	}
 
-	pNext.myTurn = true
+	pNext.MyTurn = true
 }
 
 func (g game) tryPlay(p player, cards []card) (actionType, error) {
@@ -359,7 +360,7 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	}
 
 	retGameAction := gameActionType(nextTurn)
-	if len(cards) == len(p.cards) {
+	if len(cards) == len(p.Cards) {
 		retGameAction = playerOut
 		if len(g.playingPlayers) == 2 {
 			retGameAction = gameOver
@@ -368,24 +369,24 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	a := newAction(invaild, retGameAction)
 
 	if len(cards) == 4 {
-		a.isRevolution = true
+		a.IsRevolution = true
 	}
 	// if the top is empty it is valid
 	// don't have to worry about pairs of the value
-	if len(g.plile[0]) == 0 {
-		a.turnAction = vaild
+	if len(g.pile[0]) == 0 {
+		a.TurnAction = vaild
 	}
 
-	// given what is on the top of the plile
+	// given what is on the top of the pile
 	// can you play these cards?
 	numFoundGT := 0
 	numFoundSame := 0
-	for _, onplile := range g.plile[0] {
+	for _, onpile := range g.pile[0] {
 		for _, toplay := range cards {
-			if onplile.Value < toplay.Value {
+			if onpile.Value < toplay.Value {
 				numFoundGT++
 			}
-			if onplile.Value == toplay.Value {
+			if onpile.Value == toplay.Value {
 				numFoundSame++
 			}
 		}
@@ -394,18 +395,18 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	numFound := numFoundGT
 	if numFoundGT < numFoundSame {
 		numFound = numFoundSame
-		a.isSkip = true
+		a.IsSkip = true
 	}
 
 	if cards[0].isLikeA2(g.isRevolution) {
 		if len(cards) == numFound-1 {
-			a.turnAction = vaild
+			a.TurnAction = vaild
 		}
 	} else if len(cards) == numFound {
-		a.turnAction = vaild
+		a.TurnAction = vaild
 	}
 
-	if a.turnAction == vaild {
+	if a.TurnAction == vaild {
 		return a, nil
 	}
 
@@ -503,7 +504,7 @@ func joinGame(f joinGameForm) error {
 	}
 
 	for _, p := range g.players {
-		if p != nil && p.name == f.PlayerName {
+		if p != nil && p.Name == f.PlayerName {
 			return errors.New("Can't add player with the same name")
 		}
 	}
@@ -550,7 +551,7 @@ func quitGame(f quitGameForm) error {
 		if p != nil {
 			numPlayers++
 		}
-		if p != nil && p.name == f.PlayerName {
+		if p != nil && p.Name == f.PlayerName {
 			g.players[i] = nil
 			g.playingPlayers[i] = nil
 			found = true
@@ -604,7 +605,7 @@ func startGame(f startGameForm) error {
 		// give card to right player
 		p := g.players[i%numPlayer]
 		c := g.deck[len(g.deck)-1]
-		p.cards = append(p.cards, c)
+		p.Cards = append(p.Cards, c)
 		// Truncate slice
 		g.deck = g.deck[:len(g.deck)-1]
 		i++
@@ -613,9 +614,9 @@ func startGame(f startGameForm) error {
 	// find who has the 3 of clubs
 	// it will be his turn
 	for _, p := range g.players {
-		for _, c := range p.cards {
+		for _, c := range p.Cards {
 			if c.is3OfClubs() {
-				p.myTurn = true
+				p.MyTurn = true
 				return nil
 			}
 		}
@@ -650,12 +651,12 @@ func takeTurn(f takeTurnForm) error {
 	}
 
 	p := g.findPlayer(f.PlayerName)
-	if p == nil || !p.myTurn {
+	if p == nil || !p.MyTurn {
 		return errors.New("bad player")
 	}
 
 	action, err := g.tryPlay(*p, f.Cards)
-	if err != nil || action.turnAction == invaild {
+	if err != nil || action.TurnAction == invaild {
 		return errors.New("invaild move")
 	}
 
@@ -821,6 +822,99 @@ func getRadomName(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+type allGameDataForm struct {
+	PlayerName string `json:"playerName"`
+	GameName   string `json:"gameName"`
+}
+
+type allGameDataJSON struct {
+	Name           string     `json:"name"`
+	State          string     `json:"state"`
+	Players        []player   `json:"players"`
+	PlayingPlayers []player   `json:"playingPlayers"`
+	Deck           []card     `json:"deck"`
+	Pile           [][]card   `json:"pile"`
+	IsRevolution   bool       `json:"isRevolution"`
+	LastAction     actionType `json:"lastAction"`
+}
+
+func getLoadAllGameDataHelper(t allGameDataForm, g game) allGameDataJSON {
+	ret := allGameDataJSON{}
+	ret.Name = g.name
+	ret.State = g.state.String()
+	ret.Players = make([]player, 0, 6)
+	ret.PlayingPlayers = make([]player, 0, 6)
+	ret.Deck = make([]card, 0, 52)
+	ret.Pile = make([][]card, 0, 40)
+
+	for _, p := range g.players {
+		if p != nil {
+			ret.Players = append(ret.Players, *p)
+		}
+	}
+	for _, p := range g.playingPlayers {
+		if p != nil {
+			ret.PlayingPlayers = append(ret.PlayingPlayers, *p)
+		}
+	}
+	for _, c := range g.deck {
+		ret.Deck = append(ret.Deck, c)
+	}
+	for _, c := range g.pile {
+		ret.Pile = append(ret.Pile, c)
+	}
+	ret.IsRevolution = g.isRevolution
+	ret.LastAction = g.lastAction
+	return ret
+}
+
+func getLoadAllGameData(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != "POST" {
+		http.Error(w, "not a post", 500)
+		return
+	}
+
+	bytes, err := ioutil.ReadAll(r.Body)
+	fmt.Println(string(bytes))
+
+	t := allGameDataForm{}
+	// err := d.Decode(&t)
+	err = json.Unmarshal(bytes, &t)
+	if err != nil {
+		// bad JSON or unrecognized json field
+		fmt.Println(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	gGameLock.RLock()
+	defer gGameLock.RUnlock()
+
+	ret := allGameDataJSON{}
+
+	for _, g := range gGames {
+		g.lock.RLock()
+
+		if g.name == t.GameName {
+			ret = getLoadAllGameDataHelper(t, g)
+			g.lock.RUnlock()
+			break
+		}
+
+		g.lock.RUnlock()
+	}
+
+	js, err := json.Marshal(ret)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
 // StartDaifugoServer add the daifugo webserver hooks
 func StartDaifugoServer() {
 
@@ -847,4 +941,5 @@ func StartDaifugoServer() {
 	http.HandleFunc("/killDaifugoGame", killGamePost)
 	http.HandleFunc("/daifugoGames.json", getGames)
 	http.HandleFunc("/randomName.json", getRadomName)
+	http.HandleFunc("/daifugoLoadAllGameData.json", getLoadAllGameData)
 }

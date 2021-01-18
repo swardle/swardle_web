@@ -35,10 +35,10 @@
         }
 
         .backofcard {
-            color: #999999;
+            color: #22411c;
         }
 
-        .fontcard {
+        .card {
             display: inline-block;
             text-align: center;
 
@@ -56,13 +56,18 @@
             padding: 5px;
         }
 
+        /* Create two equal columns that floats next to each other */
+        .currentPlayer {
+            background-color: #aaa;
+        }
+
+
         /* Clear floats after the columns */
         .row:after {
             content: "";
             display: table;
             clear: both;
         }
-
     </style>
 
 
@@ -70,80 +75,323 @@
 
 <script>
 
+    const defaultSuitCardIds = [
+        127137, // spades 
+        127153, // harts
+        127169, // diamonds
+        127185  // clubs
+    ]
+
+
+    function SendToPile() {
+
+        var checkboxs = document.getElementsByClassName("mycardscheckbox");
+        for (var i = 0; i < checkboxs.length; i++) {
+            if (checkboxs[i].checked) {
+                console.log("value = " + i + " " + checkboxs[i].value)
+            }
+        }
+    }
+
+
+    function makePlayerString(game, i, columnIndex) {
+        var p = game.players[i];
+        const defaultData = `<div id="column1" class="column">
+            <table>
+                <tr style="width:50%" class="styletable">
+                    <th style="width:10%">MyTurn</th>
+                    <th style="width:10%">IsOut</th>
+                </tr>
+            </table>
+            <label for="playerName">Player Name:</label>
+            <input type="text" id="playerName1" name="playerName" value="Bill"><br>
+            <h2 id="title1">Player 1 - tycoon</h2>`;
+        var str = defaultData.replace("column1", "column" + columnIndex);
+        str = str.replace("playerName1", "playerName" + columnIndex);
+        str = str.replace("title1", "title" + columnIndex);
+        str = str.replace("Player 1 - tycoon", "Player " + i + " - " + p.title);
+        str = str.replace("Bill", p.name);
+        if (p.myTurn) {
+            str = str.replace("MyTurn", "Turn");
+        } else {
+            str = str.replace("MyTurn", "NotTurn");
+        }
+        if (p.isOut) {
+            str = str.replace("IsOut", "Out");
+        } else {
+            str = str.replace("IsOut", "InGame");
+        }
+        str = str.replace('class="column"', 'class="column currentPlayer"');
+        return str;
+    }
+
+    function readerAllGameData(game) {
+        var playerName = document.getElementById("playerName").value;
+        var gameName = document.getElementById("gameName").innerHTML;
+
+        document.getElementById("gameName").innerHTML = game.state;
+        document.getElementById("isRevolution").innerHTML = game.isRevolution;
+        document.getElementById("turnAction").innerHTML = game.lastAction.turnAction;
+        document.getElementById("gameAction").innerHTML = game.lastAction.gameAction;
+        document.getElementById("wasSkip").innerHTML = game.lastAction.isSkip;
+        document.getElementById("wasRevolution").innerHTML = game.lastAction.isRevolution;
+
+        var otherPlayers = "";
+
+
+        var playerIndex = -1;
+        var columnIndex = 0;
+        var otherPlayers = ""
+        for (var i = 0; i < game.players.length; i++) {
+            var p = game.players[i];
+            if (playerName === p.name) {
+                playerIndex = i;
+                continue;
+            } else {
+                columnIndex++;
+            }
+            var str = makePlayerString(game, i, columnIndex)
+            var c = `<div id="cards1">`;
+            c = c.replace("cards1", "cards" + columnIndex);
+            for (var j = 0; j < p.cards.length; j++) {
+                c += `<span class="card backofcard">&#127136</span>`;
+            }
+            c += `</div></div>`;
+            str += c;
+            otherPlayers += str
+        }
+        document.getElementById("otherPlayers").innerHTML = otherPlayers
+        
+        const defaultSuitCheckBoxes = [
+            // spades
+            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="AAAA"><label class="card black" for="card0">BBBB</label>`,
+            // harts
+            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="AAAA"><label class="card red" for="card0">BBBB</label>`,
+            // diamonds
+            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="AAAA"><label class="card red" for="card0">BBBB</label>`,
+            // clubs
+            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card3" value="AAAA"><label class="card black" for="card0">BBBB</label>`
+        ]
+
+        var str = makePlayerString(game, playerIndex, 0)
+        var c = `<div id="cards1">`;
+        c = c.replace("cards1", "cards" + 0);
+        for (var j = 0; j < p.cards.length; j++) {
+            var cv = p.cards[j]
+            var base = defaultSuitCardIds[cv.suit]
+            var ci = base + cv.value
+            var cistr = String.fromCharCode(ci)
+            var d = defaultSuitCheckBoxes[cv.suit]
+            var s = d.replace("card0", "card" + j)
+            var v = { "suit": cv.suit, "value": cv.value }
+            s = s.replace("AAAA", JSON.stringify(v))
+            s = s.replace("BBBB", cistr)
+
+            c += s;
+        }
+        c += `</div></div>`;
+        str += c;
+
+        document.getElementById("currentPlayer").innerHTML = str;
+
+
+        const defaultSuitPile = [
+            // spades
+            `<span class="card black">BBBB</span>`,
+            // harts
+            `<span class="card red">BBBB</span>`,
+            // diamonds
+            `<span class="card red">BBBB</span>`,
+            // clubs
+            `<span class="card black">BBBB</span>`            
+        ]
+
+        var c = ``;
+        for (var j = 0; j < p.pile[0].length; j++) {
+            var cv = p.pile[0][j]
+            var base = defaultSuitCardIds[cv.suit]
+            var ci = base + cv.value
+            var cistr = String.fromCharCode(ci)
+            var d = defaultSuitPile[cv.suit]
+            var s = d.replace("BBBB", cistr)
+
+            c += s;
+        }
+
+        document.getElementById("pile").innerHTML = c;
+    }
+
+    function LoadAllGameData() {
+        data = {
+            "playerName": document.getElementById("playerName").value,
+            "gameName": document.getElementById("gameName").innerHTML,
+        }
+
+        json = JSON.stringify(data)
+
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/daifugoLoadAllGameData.json";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                // var uri = "/template/dgame.html?playerName="+data.playerName+"&gameName="+data.gameName;
+                // var url = encodeURI(uri);                
+                // window.location.replace(url);
+                var data = JSON.parse(this.responseText);
+                readerAllGameData(data, playerName)
+            }
+        };
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xmlhttp.send(json);
+
+    }
+
+    window.onload = function () {
+        element = document.getElementById("otherPlayers");
+        if (element !== null) {
+            var url = new URL(window.location.href);
+            const playerName = url.searchParams.get('playerName')
+            const gameName = url.searchParams.get('gameName')
+            var e = document.getElementById("playerName")
+            e.value = playerName
+            e = document.getElementById("gameName")
+            e.innerHTML = gameName
+            LoadAllGameData()
+        }
+    };
+
+
+
 </script>
 
 <body>
-
-
-    <div id="otherplayers">
-        <div class="row">
-            <div class="column" style="background-color:#aaa;">
-                <h2>Column 1</h2>
-                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-                <span class="fontcard black">&#127137</span>
-                <span class="fontcard red">&#127153</span>
-                <span class="fontcard red">&#127169</span>
-                <span class="fontcard black">&#127185</span>
+    <h2>Game Name</h2>
+    <h2 id="gameName"></h2>
+    <div class="row" id="otherPlayers">
+        <div id="column1" class="column">
+            <label for="playerName">Player Name:</label>
+            <input type="text" id="playerName1" name="playerName" value=""><br>
+            <h2 id="title1">Player 1 - tycoon</h2>
+            <div id="cards1">
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
             </div>
-            <div class="column" style="background-color:#aaa;">
-                <h2>Column 2</h2>
-                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-                <span class="fontcard black">&#127137</span>
-                <span class="fontcard red">&#127153</span>
-                <span class="fontcard red">&#127169</span>
-                <span class="fontcard black">&#127185</span>
+        </div>
+        <div id="column2" class="column">
+            <label for="playerName2">Player Name:</label>
+            <input type="text" id="playerName" name="playerName" value=""><br>
+            <h2 id="title2">Player 2 - rich</h2>
+            <div id="cards2">
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
             </div>
-            <div class="column" style="background-color:#aaa;">
-                <h2>Column 3</h2>
-                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-                <span class="fontcard black">&#127137</span>
-                <span class="fontcard red">&#127153</span>
-                <span class="fontcard red">&#127169</span>
-                <span class="fontcard black">&#127185</span>
+        </div>
+        <div id="column3" class="column currentPlayer">
+            <label for="playerName3">Player Name:</label>
+            <input type="text" id="playerName" name="playerName" value=""><br>
+            <h2 id="title3">Player 4 - commoner</h2>
+            <div id="cards3">
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
             </div>
-            <div class="column" style="background-color:#aaa;">
-                <h2>Column 4</h2>
-                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-                <span class="fontcard black">&#127137</span>
-                <span class="fontcard red">&#127153</span>
-                <span class="fontcard red">&#127169</span>
-                <span class="fontcard black">&#127185</span>
+        </div>
+        <div id="column4" class="column">
+            <label for="playerName4">Player Name:</label>
+            <input type="text" id="playerName" name="playerName" value=""><br>
+            <h2 id="title4">Player 5 - poor</h2>
+            <div id="cards4">
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
             </div>
-            <div class="column" style="background-color:#aaa;">
-                <h2>Column 5</h2>
-                <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-                <span class="fontcard black">&#127137</span>
-                <span class="fontcard red">&#127153</span>
-                <span class="fontcard red">&#127169</span>
-                <span class="fontcard black">&#127185</span>
+        </div>
+        <div id="column5" class="column">
+            <label for="playerName">Player Name:</label>
+            <input type="text" id="playerName5" name="playerName" value=""><br>
+            <h2 id="title5">Player 6 - beggar</h2>
+            <div id="cards5">
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
+                <span class="card backofcard">&#127136</span>
             </div>
         </div>
     </div>
 
+    <h2>Current Game State</h2>
+    <table>
+        <tr style="width:50%" class="styletable">
+            <th style="width:10%">state</th>
+            <th style="width:10%">isRevolution</th>
+        </tr>
+        <tbody id="gamesTable">
+            <tr>
+                <td id="state">Started</td>
+                <td id="isRevolution">No Revolution</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <h2>What happened last tune</h2>
+
+    <table>
+        <tr style="width:50%" class="styletable">
+            <th style="width:10%">TurnAction</th>
+            <th style="width:10%">GameAction</th>
+            <th style="width:10%">Was Skip</th>
+            <th style="width:10%">Was Revolution</th>
+        </tr>
+        <tbody id="gamesTable">
+            <tr>
+                <td id="turnAction">valid</td>
+                <td id="gameAction">nextTurn</td>
+                <td id="wasSkip">No Skip</td>
+                <td id="wasRevolution">No Revolution</td>
+            </tr>
+        </tbody>
+    </table>
+
+
     <h2>pile</h2>
 
     <div id="pile">
-        <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-        <span class="fontcard black">&#127137</span>
-        <span class="fontcard red">&#127153</span>
-        <span class="fontcard red">&#127169</span>
-        <span class="fontcard black">&#127185</span>
-</div>
+        <span class="card backofcard">&#127136</span>
+        <span class="card black">&#127137</span>
+        <span class="card red">&#127153</span>
+        <span class="card red">&#127169</span>
+        <span class="card black">&#127185</span>
+    </div>
 
     <h2>Your hand</h2>
 
-    <label for="playerName">Player Name:</label>
-    <input type="text" id="playerName" name="playerName" value=""><br>
+    <div id="currentPlayer">
+        <div id="column0" class="column currentPlayer">
+            <label for="playerName">Player Name:</label>
+            <input type="text" id="playerName0" name="playerName" value=""><br>
+            <h2 id="title0">Player 3 - commoner</h2>
 
-    <h2></h2>
-
-    <div id="yourhand">
-        <span class="fontcard backofcard" style="color: #22411c">&#127136</span>
-        <span class="fontcard black">&#127137</span>
-        <span class="fontcard red">&#127153</span>
-        <span class="fontcard red">&#127169</span>
-        <span class="fontcard black">&#127185</span>
-</div>
+            <span id="cards0">
+                <input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="0">
+                <label class="card black" for="card0">&#127137</label>
+                <input class="mycardscheckbox" type="checkbox" id="card1" name="card1" value="1">
+                <label class="card red" for="card1">&#127153</label>
+                <input class="mycardscheckbox" type="checkbox" id="card2" name="card2" value="2">
+                <label class="card red" for="card2">&#127169</label>
+                <input class="mycardscheckbox" type="checkbox" id="card3" name="card3" value="3">
+                <label class="card black" for="card3">&#127185</label>
+            </span>
+            <button onclick="SendToPile()">Send to pile</button>
+        </div>
+    </div>
 
 </body>
 

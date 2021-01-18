@@ -43,7 +43,9 @@
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 //var name = JSON.parse(this.responseText);
-                window.location.replace("/template/dgame.html");
+                var uri = "/template/dgame.html?playerName="+data.playerName+"&gameName="+data.gameName;
+                var url = encodeURI(uri);                
+                window.location.replace(url);
             }
         };
         xmlhttp.open("POST", url, true);
@@ -139,8 +141,9 @@
 
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                //var name = JSON.parse(this.responseText);
-                window.location.replace("/template/dgame.html");
+                var uri = "/template/dgame.html?playerName="+data.playerName+"&gameName="+data.gameName;
+                var url = encodeURI(uri);                
+                window.location.replace(url);
             }
         };
         xmlhttp.open("POST", url, true);

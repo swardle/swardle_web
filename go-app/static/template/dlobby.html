@@ -29,6 +29,34 @@
 </head>
 
 <script>
+
+    let sock = null;
+    function wsConnect() {
+        let location = window.location.hostname + ":8080"
+        let url = "ws://"+location+"/ws";
+        console.log("url:" + url);
+        sock = new WebSocket(url);
+        sock.onopen = function () {
+            console.log("connected to " + url);
+        };
+        sock.onmessage = function (e) {
+            console.log("onmessage "+ e.data);
+        };
+        sock.onclose = function (e) {
+            console.log("connection: " + url + " closed(" + e.code + ")")
+        };
+    }
+
+    function wsDisconnect() {
+        sock.close();
+        sock = null
+    }
+
+    function wsSend() {
+        let mymsg = JSON.stringify({msg: 'Hello' + document.getElementById("playerName").value, path: 'localhost'})
+        sock.send(mymsg);
+    }
+
     function joinGame(gameName) {
         data = { 
             "playerName" : document.getElementById("playerName").value,
@@ -171,6 +199,10 @@
 
 <body>
 
+    <button onclick="wsConnect()">wsConnect</button>
+    <button onclick="wsSend()">wsSend</button>
+    <button onclick="wsDisconnect()">wsDisconnect</button>
+    
     <h2>Set you player name</h2>
 
     <label for="playerName">Player Name:</label>

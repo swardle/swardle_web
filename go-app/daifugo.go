@@ -10,7 +10,25 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/swardle/swardle_web/pkg/websocket"
 )
+
+func serveWs(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("WebSocket Endpoint Hit")
+	conn, err := websocket.Upgrade(w, r)
+	if err != nil {
+		fmt.Fprintf(w, "%+v\n", err)
+	}
+
+	client := &websocket.Client{
+		Conn: conn,
+		Pool: pool,
+	}
+
+	pool.Register <- client
+	client.Read()
+}
 
 type stateType string
 
@@ -260,9 +278,19 @@ type game struct {
 	lastAction     actionType
 }
 
+func (g game) countPlayer() int {
+	numPlayers := 0
+	for _, p := range g.players {
+		if p != nil {
+			numPlayers++
+		}
+	}
+	return numPlayers
+}
+
 func (g game) findPlayer(name string) *player {
 	for _, p := range g.players {
-		if p.Name == name {
+		if p != nil && p.Name == name {
 			return p
 		}
 	}
@@ -271,16 +299,16 @@ func (g game) findPlayer(name string) *player {
 
 func (g game) findPlayerIndex(name string) int {
 	for i, p := range g.players {
-		if p.Name == name {
+		if p != nil && p.Name == name {
 			return i
 		}
 	}
 	return -1
 }
 
-func (g game) removePlayingPlayer(name string) {
+func (g *game) removePlayingPlayer(name string) {
 	for i, p := range g.playingPlayers {
-		if p.Name == name {
+		if p != nil && p.Name == name {
 			copy(g.playingPlayers[i:], g.playingPlayers[i+1:])            // Shift p.cards[i+1:] left one index.
 			g.playingPlayers[len(g.playingPlayers)-1] = nil               // Erase last element (write zero value).
 			g.playingPlayers = g.playingPlayers[:len(g.playingPlayers)-1] // Truncate slice.
@@ -289,7 +317,7 @@ func (g game) removePlayingPlayer(name string) {
 	}
 }
 
-func (g game) doAction(p player, cards []card, a actionType) {
+func (g *game) doAction(p *player, cards []card, a actionType) {
 
 	// remove the cards played
 	// find the indexs of the cards to delete
@@ -503,10 +531,8 @@ func joinGame(f joinGameForm) error {
 		return errors.New("Can't add player once started")
 	}
 
-	for _, p := range g.players {
-		if p != nil && p.Name == f.PlayerName {
-			return errors.New("Can't add player with the same name")
-		}
+	if g.findPlayer(f.PlayerName) != nil {
+		return errors.New("Can't add player with the same name")
 	}
 
 	foundFree := false
@@ -524,6 +550,13 @@ func joinGame(f joinGameForm) error {
 		return errors.New("No free slots for players")
 	}
 
+	pcount := g.countPlayer()
+	if pcount == len(g.players) {
+		g.startGame()
+	}
+
+	// update the global structure
+	gGames[f.GameName] = g
 	return nil
 }
 
@@ -575,33 +608,15 @@ func quitGame(f quitGameForm) error {
 	return nil
 }
 
-type startGameForm struct {
-	GameName string `json:"gameName"`
-}
-
-func startGame(f startGameForm) error {
-	gGameLock.RLock()
-	defer gGameLock.RUnlock()
-	g, ok := gGames[f.GameName]
-	if !ok {
-		return errors.New("game does not exist")
-	}
-
+func (g *game) startGame() error {
 	if g.state != "notStarted" {
 		return errors.New("Can't start game once started")
-	}
-	// lock this game. don't let 2 player update
-	// this game or something.
-	g.lock.Lock()
-	defer g.lock.Unlock()
-	if g.state != "notStarted" {
-		return errors.New("Can't remove player once started")
 	}
 
 	// deal all cards out.
 	i := 0
 	numPlayer := len(g.players)
-	for len(g.deck) == 0 {
+	for len(g.deck) != 0 {
 		// give card to right player
 		p := g.players[i%numPlayer]
 		c := g.deck[len(g.deck)-1]
@@ -617,10 +632,12 @@ func startGame(f startGameForm) error {
 		for _, c := range p.Cards {
 			if c.is3OfClubs() {
 				p.MyTurn = true
-				return nil
+				break
 			}
 		}
 	}
+
+	g.state = started
 
 	return nil
 }
@@ -660,7 +677,10 @@ func takeTurn(f takeTurnForm) error {
 		return errors.New("invaild move")
 	}
 
-	g.doAction(*p, f.Cards, action)
+	g.doAction(p, f.Cards, action)
+
+	// update the global structure
+	gGames[f.GameName] = g
 
 	return nil
 }
@@ -942,4 +962,11 @@ func StartDaifugoServer() {
 	http.HandleFunc("/daifugoGames.json", getGames)
 	http.HandleFunc("/randomName.json", getRadomName)
 	http.HandleFunc("/daifugoLoadAllGameData.json", getLoadAllGameData)
+	// broadcast messages
+	pool := websocket.NewPool()
+	go pool.Start()
+
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		serveWs(pool, w, r)
+	})
 }

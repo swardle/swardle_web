@@ -74,13 +74,32 @@
 </head>
 
 <script>
+    let sock = null;
+    pingAllClients = JSON.stringify({msg: 'Hello', path: 'localhost'})
+    function wsConnect() {
+        let location = window.location.hostname + ":8080"
+        let url = "ws://"+location+"/ws";
+        console.log("url:" + url);
+        sock = new WebSocket(url);
+        sock.onopen = function () {
+            console.log("connected to " + url);
+        };
+        sock.onmessage = function (e) {
+            console.log("onmessage "+ e.data);
+        };
+        sock.onclose = function (e) {
+            console.log("connection: " + url + " closed(" + e.code + ")")
+        };
+    }
 
-    const defaultSuitCardIds = [
-        127137, // spades 
-        127153, // harts
-        127169, // diamonds
-        127185  // clubs
-    ]
+    function wsDisconnect() {
+        sock.close();
+        sock = null
+    }
+
+    function wsSend(msg) {
+        sock.send(msg);
+    }
 
 
     function SendToPile() {
@@ -91,6 +110,32 @@
                 console.log("value = " + i + " " + checkboxs[i].value)
             }
         }
+    }
+
+    function cardToUnicodeString(cv)
+    {
+        // unicode is 
+        // Ace, 2, 3, 4, ... 9, 10, J, C, Q, K
+        // where C is Knight
+        // a card value is
+        // 1,2,3 ... 10,11,12,13
+        const defaultSuitCardIds = [
+            127137, // spades 
+            127153, // harts
+            127169, // diamonds
+            127185  // clubs
+        ]
+
+        var base = defaultSuitCardIds[cv.suit]
+        var value = cv.value - 1 // make ace a zero not one.        
+        // we don't use the knight unicode so skip that. Make queen and king higher
+        if(value >= 11) {
+            value = value + 1
+        }
+        var ci = base + value
+        var cistr = String.fromCodePoint(ci)
+        return cistr
+
     }
 
 
@@ -173,14 +218,13 @@
             `<input class="mycardscheckbox" type="checkbox" id="card0" name="card3" value="AAAA"><label class="card black" for="card0">BBBB</label>`
         ]
 
+        var p = game.players[playerIndex];
         var str = makePlayerString(game, playerIndex, 0)
         var c = `<div id="cards1">`;
         c = c.replace("cards1", "cards" + 0);
         for (var j = 0; j < p.cards.length; j++) {
             var cv = p.cards[j]
-            var base = defaultSuitCardIds[cv.suit]
-            var ci = base + cv.value
-            var cistr = String.fromCharCode(ci)
+            var cistr = cardToUnicodeString(cv)
             var d = defaultSuitCheckBoxes[cv.suit]
             var s = d.replace("card0", "card" + j)
             var v = { "suit": cv.suit, "value": cv.value }
@@ -207,15 +251,14 @@
         ]
 
         var c = ``;
-        for (var j = 0; j < p.pile[0].length; j++) {
-            var cv = p.pile[0][j]
-            var base = defaultSuitCardIds[cv.suit]
-            var ci = base + cv.value
-            var cistr = String.fromCharCode(ci)
-            var d = defaultSuitPile[cv.suit]
-            var s = d.replace("BBBB", cistr)
-
-            c += s;
+        if(game.pile.length != 0) {
+                for (var j = 0; j < game.pile[0].length; j++) {
+                    var cv = game.pile[0][j]
+                    var cistr = cardToUnicodeString(cv)
+                    var d = defaultSuitPile[cv.suit]
+                    var s = d.replace("BBBB", cistr)
+                    c += s;
+            }
         }
 
         document.getElementById("pile").innerHTML = c;
@@ -266,6 +309,10 @@
 </script>
 
 <body>
+    <button onclick="wsConnect()">wsConnect</button>
+    <button onclick="wsSend(pingAllClients)">wsSend</button>
+    <button onclick="wsDisconnect()">wsDisconnect</button>
+
     <h2>Game Name</h2>
     <h2 id="gameName"></h2>
     <div class="row" id="otherPlayers">

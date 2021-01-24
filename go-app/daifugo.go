@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -460,7 +461,11 @@ type createGameForm struct {
 	Seed       int64  `json:"seed"`
 }
 
-func addGame(f createGameForm) error {
+type createGameReturn struct {
+	GameName string `json:"gameName"`
+}
+
+func addGame(f createGameForm) createGameReturn {
 	g := game{}
 	if f.Seed == 0 {
 		g.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -468,7 +473,6 @@ func addGame(f createGameForm) error {
 		g.rand = rand.New(rand.NewSource(f.Seed))
 	}
 	g.lock = &sync.RWMutex{}
-	g.name = f.GameName
 	g.deck = make([]card, 52, 52)
 	g.state = "notStarted"
 	for i := range g.deck {
@@ -481,16 +485,27 @@ func addGame(f createGameForm) error {
 	gGameLock.Lock()
 	defer gGameLock.Unlock()
 
-	if _, ok := gGames[g.name]; ok {
-		return errors.New("game exists")
+	// make a world unique game name
+	gameNumber := 0
+	uniqueGameName := f.GameName
+	if _, ok := gGames[f.GameName]; ok {
+		for {
+			gameNumber++
+			uniqueGameName = fmt.Sprintf("%s%d", f.GameName, gameNumber)
+			if _, ok := gGames[uniqueGameName]; !ok {
+				break
+			}
+		}
 	}
+
+	g.name = uniqueGameName
 	player := newPlayer(f.PlayerName)
 	g.players[0] = player
 	g.playingPlayers[0] = player
 
 	gGames[g.name] = g
 
-	return nil
+	return createGameReturn{g.name}
 }
 
 type killGameForm struct {
@@ -624,6 +639,15 @@ func (g *game) startGame() error {
 		// Truncate slice
 		g.deck = g.deck[:len(g.deck)-1]
 		i++
+	}
+
+	// sort cards
+	for _, p := range g.players {
+		sort.SliceStable(p.Cards, func(i, j int) bool {
+			vi := int(p.Cards[i].Suit) + (p.Cards[i].Value.getNormalOrder() * 100)
+			vj := int(p.Cards[j].Suit) + (p.Cards[j].Value.getNormalOrder() * 100)
+			return vi < vj
+		})
 	}
 
 	// find who has the 3 of clubs
@@ -768,7 +792,16 @@ func addGamePost(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// got the input we expected: no more, no less
-	addGame(t)
+	ret := addGame(t)
+
+	js, err := json.Marshal(ret)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(js)
 }
 
 type gameJSON struct {

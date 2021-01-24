@@ -33,14 +33,14 @@
     let sock = null;
     function wsConnect() {
         let location = window.location.hostname + ":8080"
-        let url = "ws://"+location+"/ws";
+        let url = "ws://" + location + "/ws";
         console.log("url:" + url);
         sock = new WebSocket(url);
         sock.onopen = function () {
             console.log("connected to " + url);
         };
         sock.onmessage = function (e) {
-            console.log("onmessage "+ e.data);
+            console.log("onmessage " + e.data);
             LoadGameTable()
         };
         sock.onclose = function (e) {
@@ -54,14 +54,14 @@
     }
 
     function wsSend() {
-        let mymsg = JSON.stringify({msg: 'Lobby Updated by ' + document.getElementById("playerName").value, path: 'localhost'})
+        let mymsg = JSON.stringify({ msg: 'Lobby Updated by ' + document.getElementById("playerName").value, path: 'localhost' })
         sock.send(mymsg);
     }
 
     function joinGame(gameName) {
-        data = { 
-            "playerName" : document.getElementById("playerName").value,
-            "gameName" : gameName,
+        data = {
+            "playerName": document.getElementById("playerName").value,
+            "gameName": gameName,
         }
 
         json = JSON.stringify(data)
@@ -72,8 +72,8 @@
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 //var name = JSON.parse(this.responseText);
-                var uri = "/template/dgame.html?playerName="+data.playerName+"&gameName="+data.gameName;
-                var url = encodeURI(uri);                
+                var uri = "/template/dgame.html?playerName=" + data.playerName + "&gameName=" + data.gameName;
+                var url = encodeURI(uri);
                 window.location.replace(url);
             }
         };
@@ -113,9 +113,23 @@
         xmlhttp.send();
     }
 
+    function compareName(a, b) {
+        const nameA = a.name;
+        const nameB = b.name;
+        let comparison = 0;
+        if (nameA > nameB) {
+            comparison = 1;
+        } else if (nameA < nameB) {
+            comparison = -1;
+        }
+        return comparison;
+    }
+
+
     function renderGamesTable(games) {
         e = document.getElementById("gamesTable");
         if (e !== null) {
+            games = games.sort(compareName);
             var str = "";
             var i;
             for (i = 0; i < games.length; i++) {
@@ -155,13 +169,13 @@
         xmlhttp.send();
     }
 
-    
+
     function createDaifugoGame(event) {
-        data = { 
-            playerName : document.getElementById("playerName").value,
-            gameName : document.getElementById("gameName").value,
-            numPlayers : parseInt(document.getElementById("numPlayers").value),
-            seed : parseInt(document.getElementById("seed").value),
+        data = {
+            playerName: document.getElementById("playerName").value,
+            gameName: document.getElementById("gameName").value,
+            numPlayers: parseInt(document.getElementById("numPlayers").value),
+            seed: parseInt(document.getElementById("seed").value),
         }
 
         json = JSON.stringify(data)
@@ -171,15 +185,18 @@
 
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                var uri = "/template/dgame.html?playerName="+data.playerName+"&gameName="+data.gameName;
-                var url = encodeURI(uri);                
+                var ret = JSON.parse(this.responseText);
+                document.getElementById("gameName").value = ret.gameName
+                data.gameName = ret.gameName
+                var uri = "/template/dgame.html?playerName=" + data.playerName + "&gameName=" + data.gameName;
+                var url = encodeURI(uri);
                 window.location.replace(url);
+                wsSend()
             }
         };
         xmlhttp.open("POST", url, true);
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(json);
-        wsSend()
     }
 
 
@@ -201,7 +218,7 @@
     };
 </script>
 
-<body>    
+<body>
     <h2>Set you player name</h2>
 
     <label for="playerName">Player Name:</label>
@@ -209,15 +226,15 @@
 
     <h2>Create a game</h2>
 
-    <form id="createDaifugoGame" >
+    <form id="createDaifugoGame">
         <label for="name">Game Name:</label>
-        <input type="text" id="gameName" name="name" value="MyGameName1"><br>
+        <input type="text" id="gameName" name="name" value="MyGameName"><br>
         <label for="numPlayers">NumPlayers:</label>
         <input type="number" id="numPlayers" name="numPlayers" max="6" min="3" value="4"><br>
         <label for="seed">Seed:</label>
         <input type="number" id="seed" name="seed" value="4"><br>
     </form>
-    <button type="submit" value="Create New Game" onclick="createDaifugoGame(event);" >Create Game</button>
+    <button type="submit" value="Create New Game" onclick="createDaifugoGame(event);">Create Game</button>
 
 
     <h2>Games</h2>
@@ -232,27 +249,6 @@
             <th style="width:20%">Status</th>
         </tr>
         <tbody id="gamesTable">
-            <tr>
-                <td><button onclick="joinGame('Jill')">Join Game</button></td>
-                <td>Jill</td>
-                <td>3</td>
-                <td>4</td>
-                <td>not started</td>
-            </tr>
-            <tr>
-                <td><button onclick="joinGame('Scott')">Join Game</button></td>
-                <td>Scott</td>
-                <td>3</td>
-                <td>4</td>
-                <td>not started</td>
-            </tr>
-            <tr>
-                <td><button disabled onclick="joinGame('Seiko')">Join Game</button></td>
-                <td>Seiko</td>
-                <td>4</td>
-                <td>4</td>
-                <td>started</td>
-            </tr>
         </tbody>
     </table>
 

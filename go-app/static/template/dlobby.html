@@ -41,6 +41,7 @@
         };
         sock.onmessage = function (e) {
             console.log("onmessage "+ e.data);
+            LoadGameTable()
         };
         sock.onclose = function (e) {
             console.log("connection: " + url + " closed(" + e.code + ")")
@@ -53,7 +54,7 @@
     }
 
     function wsSend() {
-        let mymsg = JSON.stringify({msg: 'Hello' + document.getElementById("playerName").value, path: 'localhost'})
+        let mymsg = JSON.stringify({msg: 'Lobby Updated by ' + document.getElementById("playerName").value, path: 'localhost'})
         sock.send(mymsg);
     }
 
@@ -79,7 +80,7 @@
         xmlhttp.open("POST", url, true);
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(json);
-
+        wsSend()
     }
 
     function killGame(name) {
@@ -95,6 +96,7 @@
         xmlhttp.open("POST", url, true);
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(json);
+        wsSend()
     }
 
     function LoadGameTable() {
@@ -177,6 +179,7 @@
         xmlhttp.open("POST", url, true);
         xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xmlhttp.send(json);
+        wsSend()
     }
 
 
@@ -194,15 +197,11 @@
         if (element !== null) {
             LoadRandomName()
         }
+        wsConnect()
     };
 </script>
 
-<body>
-
-    <button onclick="wsConnect()">wsConnect</button>
-    <button onclick="wsSend()">wsSend</button>
-    <button onclick="wsDisconnect()">wsDisconnect</button>
-    
+<body>    
     <h2>Set you player name</h2>
 
     <label for="playerName">Player Name:</label>

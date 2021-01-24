@@ -83,9 +83,12 @@
         sock = new WebSocket(url);
         sock.onopen = function () {
             console.log("connected to " + url);
+            let mymsg = JSON.stringify({msg: 'Connect to Game ' + document.getElementById("playerName0").value, path: 'localhost'})
+            wsSend(mymsg)
         };
         sock.onmessage = function (e) {
             console.log("onmessage "+ e.data);
+            LoadAllGameData()
         };
         sock.onclose = function (e) {
             console.log("connection: " + url + " closed(" + e.code + ")")
@@ -171,10 +174,10 @@
     }
 
     function readerAllGameData(game) {
-        var playerName = document.getElementById("playerName").value;
+        var playerName = document.getElementById("playerName0").value;
         var gameName = document.getElementById("gameName").innerHTML;
 
-        document.getElementById("gameName").innerHTML = game.state;
+        document.getElementById("state").innerHTML = game.state;
         document.getElementById("isRevolution").innerHTML = game.isRevolution;
         document.getElementById("turnAction").innerHTML = game.lastAction.turnAction;
         document.getElementById("gameAction").innerHTML = game.lastAction.gameAction;
@@ -265,8 +268,9 @@
     }
 
     function LoadAllGameData() {
-        data = {
-            "playerName": document.getElementById("playerName").value,
+        let playerName = document.getElementById("playerName0").value
+        let data = {
+            "playerName": playerName,
             "gameName": document.getElementById("gameName").innerHTML,
         }
 
@@ -280,8 +284,8 @@
                 // var uri = "/template/dgame.html?playerName="+data.playerName+"&gameName="+data.gameName;
                 // var url = encodeURI(uri);                
                 // window.location.replace(url);
-                var data = JSON.parse(this.responseText);
-                readerAllGameData(data, playerName)
+                var game = JSON.parse(this.responseText);
+                readerAllGameData(game, playerName)
             }
         };
         xmlhttp.open("POST", url, true);
@@ -296,12 +300,13 @@
             var url = new URL(window.location.href);
             const playerName = url.searchParams.get('playerName')
             const gameName = url.searchParams.get('gameName')
-            var e = document.getElementById("playerName")
+            var e = document.getElementById("playerName0")
             e.value = playerName
             e = document.getElementById("gameName")
             e.innerHTML = gameName
             LoadAllGameData()
         }
+        wsConnect()
     };
 
 
@@ -309,10 +314,6 @@
 </script>
 
 <body>
-    <button onclick="wsConnect()">wsConnect</button>
-    <button onclick="wsSend(pingAllClients)">wsSend</button>
-    <button onclick="wsDisconnect()">wsDisconnect</button>
-
     <h2>Game Name</h2>
     <h2 id="gameName"></h2>
     <div class="row" id="otherPlayers">

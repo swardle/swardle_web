@@ -62,10 +62,10 @@ func (t stateType) String() string {
 type suitType int
 
 const (
-	spade   suitType = 1
-	heart            = 3
+	spade   suitType = 0
+	heart            = 1
 	diamond          = 2
-	club             = 0
+	club             = 3
 )
 
 func (t suitType) String() string {
@@ -211,12 +211,13 @@ func (p player) inHand(cards []card) error {
 type turnActionType string
 
 const (
-	vaild   turnActionType = "vaild"
-	invaild                = "invaild"
+	vaildTurn turnActionType = "vaildTurn"
+	vaildSkip turnActionType = "vaildSkip"
+	invaild                  = "invaild"
 )
 
 func (t turnActionType) String() string {
-	types := [...]string{"vaild", "invaild"}
+	types := [...]string{"vaildTurn", "vaildSkip", "invaild"}
 
 	x := string(t)
 	for _, v := range types {
@@ -337,14 +338,16 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 	}
 
 	// delete the items from the players hand
-	for i := range p.Cards {
-		copy(p.Cards[i:], p.Cards[i+1:])   // Shift p.cards[i+1:] left one index.
-		p.Cards[len(p.Cards)-1] = card{}   // Erase last element (write zero value).
-		p.Cards = p.Cards[:len(p.Cards)-1] // Truncate slice.
+	for _, indexToDelete := range toDelete {
+		copy(p.Cards[indexToDelete:], p.Cards[indexToDelete+1:]) // Shift p.cards[indexToDelete+1:] left one index.
+		p.Cards[len(p.Cards)-1] = card{}                         // Erase last element (write zero value).
+		p.Cards = p.Cards[:len(p.Cards)-1]                       // Truncate slice.
 	}
 
-	// add the cards to the top of the pile
-	g.pile = append([][]card{cards}, g.pile...)
+	if len(cards) != 0 {
+		// add the cards to the top of the pile
+		g.pile = append([][]card{cards}, g.pile...)
+	}
 
 	g.lastAction = a
 	if a.IsRevolution {
@@ -374,6 +377,8 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 
 func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	invaildAction := newAction(invaild, invaildGameAction)
+
+	// you have to have these cards in hand
 	err := p.inHand(cards)
 	if err != nil {
 		return invaildAction, errors.New("invalid move you don't have those cards")
@@ -400,18 +405,35 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	if len(cards) == 4 {
 		a.IsRevolution = true
 	}
+
+	// If you play 0 cards you could skip your own turn
+	if len(cards) == 0 {
+		a.TurnAction = vaildSkip
+		return a, nil
+	}
+
 	// if the top is empty it is valid
 	// don't have to worry about pairs of the value
-	if len(g.pile[0]) == 0 {
-		a.TurnAction = vaild
+	if len(g.pile) == 0 || len(g.pile[0]) == 0 {
+		a.TurnAction = vaildTurn
+		return a, nil
+	}
+
+	// if the pile and the number of cards
+	// are not within one then this is not a vaild action
+	if len(cards) != len(g.pile[0]) && len(cards)-1 != len(g.pile[0]) {
+		return invaildAction, errors.New("not a matching number of cards")
 	}
 
 	// given what is on the top of the pile
 	// can you play these cards?
 	numFoundGT := 0
 	numFoundSame := 0
-	for _, onpile := range g.pile[0] {
-		for _, toplay := range cards {
+
+	for i := range g.pile[0] {
+		onpile := g.pile[0][i]
+		if i < len(cards) {
+			toplay := cards[i]
 			if onpile.Value < toplay.Value {
 				numFoundGT++
 			}
@@ -427,15 +449,13 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 		a.IsSkip = true
 	}
 
-	if cards[0].isLikeA2(g.isRevolution) {
-		if len(cards) == numFound-1 {
-			a.TurnAction = vaild
-		}
-	} else if len(cards) == numFound {
-		a.TurnAction = vaild
+	if cards[0].isLikeA2(g.isRevolution) && len(cards) == numFoundGT {
+		a.TurnAction = vaildTurn
+		return a, nil
 	}
 
-	if a.TurnAction == vaild {
+	if len(g.pile[0]) == numFound {
+		a.TurnAction = vaildTurn
 		return a, nil
 	}
 
@@ -670,43 +690,86 @@ type takeTurnForm struct {
 	GameName   string `json:"gameName"`
 	PlayerName string `json:"playerName"`
 	Cards      []card `json:"cards"`
+	JustTry    bool   `json:"justTry"`
 }
 
-func takeTurn(f takeTurnForm) error {
+func takeTurn(f takeTurnForm) (actionType, error) {
+	action := actionType{}
+	var err error
 	gGameLock.RLock()
 	defer gGameLock.RUnlock()
 	g, ok := gGames[f.GameName]
 	if !ok {
-		return errors.New("game does not exist")
+		return action, errors.New("game does not exist")
 	}
 	// lock this game. don't let 2 player update
 	// this game or something.
 	g.lock.Lock()
 	defer g.lock.Unlock()
-	if g.state != "notStarted" {
-		return errors.New("Can't remove player once started")
-	}
-
-	if g.state != "notStarted" {
-		return errors.New("Can't start game once started")
+	if g.state != "started" {
+		return action, errors.New("Can't take a turn if game is not started")
 	}
 
 	p := g.findPlayer(f.PlayerName)
 	if p == nil || !p.MyTurn {
-		return errors.New("bad player")
+		return action, errors.New("bad player")
 	}
 
-	action, err := g.tryPlay(*p, f.Cards)
+	action, err = g.tryPlay(*p, f.Cards)
 	if err != nil || action.TurnAction == invaild {
-		return errors.New("invaild move")
+		return action, errors.New("invaild move")
 	}
 
-	g.doAction(p, f.Cards, action)
+	if !f.JustTry {
+		g.doAction(p, f.Cards, action)
 
-	// update the global structure
-	gGames[f.GameName] = g
+		// update the global structure
+		gGames[f.GameName] = g
+	}
 
-	return nil
+	return action, nil
+}
+
+func takeTurnPost(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.Error(rw, "not a post", 500)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	d.DisallowUnknownFields() // catch unwanted fields
+
+	t := takeTurnForm{}
+	err := d.Decode(&t)
+	if err != nil {
+		// bad JSON or unrecognized json field
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// optional extra check
+	if d.More() {
+		http.Error(rw, "extraneous data after JSON object", http.StatusBadRequest)
+		return
+	}
+
+	// got the input we expected: no more, no less
+	action, err := takeTurn(t)
+	// don't handle the error of bad turn if they just seeing if they can do its
+	if err != nil && !t.JustTry {
+		// bad JSON or unrecognized json field
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	js, err := json.Marshal(action)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(js)
+
 }
 
 func killGamePost(rw http.ResponseWriter, req *http.Request) {
@@ -992,6 +1055,7 @@ func StartDaifugoServer() {
 	http.HandleFunc("/createDaifugoGame", addGamePost)
 	http.HandleFunc("/joinDaifugoGame", joinGamePost)
 	http.HandleFunc("/killDaifugoGame", killGamePost)
+	http.HandleFunc("/takeTurnDaifugoGame", takeTurnPost)
 	http.HandleFunc("/daifugoGames.json", getGames)
 	http.HandleFunc("/randomName.json", getRadomName)
 	http.HandleFunc("/daifugoLoadAllGameData.json", getLoadAllGameData)

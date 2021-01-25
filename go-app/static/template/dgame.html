@@ -56,11 +56,17 @@
             padding: 5px;
         }
 
-        /* Create two equal columns that floats next to each other */
+        /* show whos turn it is */
         .currentPlayer {
             background-color: #aaa;
         }
 
+        /* Create two equal columns that floats next to each other */
+        .currentPlayerColumn {
+            float: left;
+            width: 50%;
+            padding: 5px;
+        }
 
         /* Clear floats after the columns */
         .row:after {
@@ -74,20 +80,21 @@
 </head>
 
 <script>
+    let gGame = null;
     let sock = null;
-    pingAllClients = JSON.stringify({msg: 'Hello', path: 'localhost'})
+    pingAllClients = JSON.stringify({ msg: 'Hello', path: 'localhost' })
     function wsConnect() {
         let location = window.location.hostname + ":8080"
-        let url = "ws://"+location+"/ws";
+        let url = "ws://" + location + "/ws";
         console.log("url:" + url);
         sock = new WebSocket(url);
         sock.onopen = function () {
             console.log("connected to " + url);
-            let mymsg = JSON.stringify({msg: 'Connect to Game ' + document.getElementById("playerName0").value, path: 'localhost'})
+            let mymsg = JSON.stringify({ msg: 'Connect to Game ' + document.getElementById("playerName0").value, path: 'localhost' })
             wsSend(mymsg)
         };
         sock.onmessage = function (e) {
-            console.log("onmessage "+ e.data);
+            console.log("onmessage " + e.data);
             LoadAllGameData()
         };
         sock.onclose = function (e) {
@@ -104,19 +111,7 @@
         sock.send(msg);
     }
 
-
-    function SendToPile() {
-
-        var checkboxs = document.getElementsByClassName("mycardscheckbox");
-        for (var i = 0; i < checkboxs.length; i++) {
-            if (checkboxs[i].checked) {
-                console.log("value = " + i + " " + checkboxs[i].value)
-            }
-        }
-    }
-
-    function cardToUnicodeString(cv)
-    {
+    function cardToUnicodeString(cv) {
         // unicode is 
         // Ace, 2, 3, 4, ... 9, 10, J, C, Q, K
         // where C is Knight
@@ -132,7 +127,7 @@
         var base = defaultSuitCardIds[cv.suit]
         var value = cv.value - 1 // make ace a zero not one.        
         // we don't use the knight unicode so skip that. Make queen and king higher
-        if(value >= 11) {
+        if (value >= 11) {
             value = value + 1
         }
         var ci = base + value
@@ -154,26 +149,40 @@
             <label for="playerName">Player Name:</label>
             <input type="text" id="playerName1" name="playerName" value="Bill"><br>
             <h2 id="title1">Player 1 - tycoon</h2>`;
-        var str = defaultData.replace("column1", "column" + columnIndex);
-        str = str.replace("playerName1", "playerName" + columnIndex);
-        str = str.replace("title1", "title" + columnIndex);
-        str = str.replace("Player 1 - tycoon", "Player " + i + " - " + p.title);
-        str = str.replace("Bill", p.name);
+        var str = defaultData.replaceAll("column1", "column" + columnIndex);
+        str = str.replaceAll("playerName1", "playerName" + columnIndex);
+        str = str.replaceAll("title1", "title" + columnIndex);
+        str = str.replaceAll("Player 1 - tycoon", "Player " + i + " - " + p.title);
+        str = str.replaceAll("Bill", p.name);
         if (p.myTurn) {
-            str = str.replace("MyTurn", "Turn");
+            str = str.replaceAll("MyTurn", "Turn");
+            if (columnIndex === 0) {
+                str = str.replaceAll('class="column"', 'class="currentPlayercolumn currentPlayer"');
+            }
+            else {
+                str = str.replaceAll('class="column"', 'class="column currentPlayer"');
+            }
         } else {
-            str = str.replace("MyTurn", "NotTurn");
+            str = str.replaceAll("MyTurn", "NotTurn");
+            if (columnIndex === 0) {
+                str = str.replaceAll('class="column"', 'class="currentPlayercolumn"');
+            }
+            else {
+                str = str.replaceAll('class="column"', 'class="column "');
+            }
         }
         if (p.isOut) {
-            str = str.replace("IsOut", "Out");
+            str = str.replaceAll("IsOut", "Out");
         } else {
-            str = str.replace("IsOut", "InGame");
+            str = str.replaceAll("IsOut", "InGame");
         }
-        str = str.replace('class="column"', 'class="column currentPlayer"');
+
+
         return str;
     }
 
     function readerAllGameData(game) {
+        gGame = game
         var playerName = document.getElementById("playerName0").value;
         var gameName = document.getElementById("gameName").innerHTML;
 
@@ -200,7 +209,7 @@
             }
             var str = makePlayerString(game, i, columnIndex)
             var c = `<div id="cards1">`;
-            c = c.replace("cards1", "cards" + columnIndex);
+            c = c.replaceAll("cards1", "cards" + columnIndex);
             for (var j = 0; j < p.cards.length; j++) {
                 c += `<span class="card backofcard">&#127136</span>`;
             }
@@ -209,35 +218,39 @@
             otherPlayers += str
         }
         document.getElementById("otherPlayers").innerHTML = otherPlayers
-        
+
         const defaultSuitCheckBoxes = [
             // spades
-            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="AAAA"><label class="card black" for="card0">BBBB</label>`,
+            `<input class="mycardscheckbox" type="checkbox" onclick="validateMoves()" id="card0" name="card0" value='AAAA'><label class="card black" for="card0">BBBB</label>`,
             // harts
-            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="AAAA"><label class="card red" for="card0">BBBB</label>`,
+            `<input class="mycardscheckbox" type="checkbox" onclick="validateMoves()" id="card0" name="card0" value='AAAA'><label class="card red" for="card0">BBBB</label>`,
             // diamonds
-            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card0" value="AAAA"><label class="card red" for="card0">BBBB</label>`,
+            `<input class="mycardscheckbox" type="checkbox" onclick="validateMoves()" id="card0" name="card0" value='AAAA'><label class="card red" for="card0">BBBB</label>`,
             // clubs
-            `<input class="mycardscheckbox" type="checkbox" id="card0" name="card3" value="AAAA"><label class="card black" for="card0">BBBB</label>`
+            `<input class="mycardscheckbox" type="checkbox" onclick="validateMoves()" id="card0" name="card0" value='AAAA'><label class="card black" for="card0">BBBB</label>`
         ]
 
         var p = game.players[playerIndex];
         var str = makePlayerString(game, playerIndex, 0)
-        var c = `<div id="cards1">`;
-        c = c.replace("cards1", "cards" + 0);
+        var c = `<div id="cards0">`;
         for (var j = 0; j < p.cards.length; j++) {
             var cv = p.cards[j]
             var cistr = cardToUnicodeString(cv)
             var d = defaultSuitCheckBoxes[cv.suit]
-            var s = d.replace("card0", "card" + j)
+            var s = d.replaceAll("card0", "card" + j)
             var v = { "suit": cv.suit, "value": cv.value }
-            s = s.replace("AAAA", JSON.stringify(v))
-            s = s.replace("BBBB", cistr)
+            s = s.replaceAll("AAAA", JSON.stringify(v))
+            s = s.replaceAll("BBBB", cistr)
 
             c += s;
         }
         c += `</div></div>`;
         str += c;
+
+        if (p.myTurn) {
+
+            str += '<br><button id="sendToPile" onclick="sendToPile()"><br>----------- Skip Turn --------------<br><br></button>'
+        }
 
         document.getElementById("currentPlayer").innerHTML = str;
 
@@ -250,21 +263,120 @@
             // diamonds
             `<span class="card red">BBBB</span>`,
             // clubs
-            `<span class="card black">BBBB</span>`            
+            `<span class="card black">BBBB</span>`
         ]
 
         var c = ``;
-        if(game.pile.length != 0) {
-                for (var j = 0; j < game.pile[0].length; j++) {
-                    var cv = game.pile[0][j]
-                    var cistr = cardToUnicodeString(cv)
-                    var d = defaultSuitPile[cv.suit]
-                    var s = d.replace("BBBB", cistr)
-                    c += s;
+        if (game.pile.length != 0) {
+            for (var j = 0; j < game.pile[0].length; j++) {
+                var cv = game.pile[0][j]
+                var cistr = cardToUnicodeString(cv)
+                var d = defaultSuitPile[cv.suit]
+                var s = d.replaceAll("BBBB", cistr)
+                c += s;
             }
         }
 
         document.getElementById("pile").innerHTML = c;
+    }
+
+    function takeTurn(justTry) {
+
+        var cardsToSend = []
+        var elements = document.getElementsByClassName("mycardscheckbox");
+        for (var i = 0; i < elements.length; i++) {
+            e = elements[i]
+            if (e.checked) {
+                cardsToSend.push(JSON.parse(e.value))
+            }
+        }
+
+        let playerName = document.getElementById("playerName0").value
+        let takeTurnForm = {
+            "gameName": document.getElementById("gameName").innerHTML,
+            "playerName": playerName,
+            "cards": cardsToSend,
+            "justTry": justTry === "justTry" ? true : false
+        }
+
+        var json = JSON.stringify(takeTurnForm)
+
+        var xmlhttp = new XMLHttpRequest();
+        var url = "/takeTurnDaifugoGame";
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                var action = JSON.parse(this.responseText);
+                var e = document.getElementById("sendToPile")
+                if (action === null || action.turnAction === "invaild") {
+                    e.disabled = true
+                    e.innerHTML = "<br>----------- invaild turn -----------<br><br>"
+                } else if (action.turnAction === "vaildSkip") {
+                    e.disabled = false
+                    e.innerHTML = "<br>----------- Skip Turn --------------<br><br>"
+                } else if (action.turnAction === "vaildTurn") {
+                    e.disabled = false
+                    e.innerHTML = "<br>----------- Take Turn --------------<br><br>"
+                }
+
+                if(!takeTurnForm.justTry) {
+                    // reload everyone data
+                    let mymsg = JSON.stringify({ msg: 'Taken a turn ' + document.getElementById("playerName0").value, path: 'localhost' })
+                    wsSend(mymsg)
+                }
+            }
+        };
+        xmlhttp.open("POST", url, true);
+        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xmlhttp.send(json);
+    }
+
+    function validateMoveStatus() {
+        cardsToSend = []
+        var elements = document.getElementsByClassName("mycardscheckbox");
+        for (var i = 0; i < elements.length; i++) {
+            e = elements[i]
+            if (e.checked) {
+                cardsToSend.push(JSON.parse(e.value))
+            }
+        }
+
+        if(cardsToSend.length==0) {
+            return "vaildSkip"
+        }
+
+        var oc = cardsToSend[0]
+        for (var i = 1; i < cardsToSend.length; i++) {
+            c = cardsToSend[i]
+            if (c.value !== oc.value) {
+                return "invaild"
+            }
+            oc = c
+        }
+
+        return "vaildTurn"
+
+    }
+
+    function validateMoves() {
+        var action = validateMoveStatus()
+        e = document.getElementById("sendToPile")
+        if (action == "vaildTurn") {
+            e.disabled = true
+            e.innerHTML = "<br>----------- Take Turn --------------<br><br>"
+        } else if (action == "vaildSkip") {
+            e.disabled = true
+            e.innerHTML = "<br>----------- Skip Turn --------------<br><br>"
+        } else {
+            e.disabled = true
+            e.innerHTML = "<br>----------- invaild turn -----------<br><br>"
+        }
+        takeTurn("justTry")
+    }
+
+
+    function sendToPile() {
+        takeTurn("takeTurn")
     }
 
     function LoadAllGameData() {
@@ -285,7 +397,13 @@
                 // var url = encodeURI(uri);                
                 // window.location.replace(url);
                 var game = JSON.parse(this.responseText);
-                readerAllGameData(game, playerName)
+                if (game.players == null) {
+                    var uri = "/template/dlobby.html";
+                    var url = encodeURI(uri);
+                    window.location.replace(url);
+                } else {
+                    readerAllGameData(game, playerName)
+                }
             }
         };
         xmlhttp.open("POST", url, true);
@@ -422,7 +540,7 @@
     <h2>Your hand</h2>
 
     <div id="currentPlayer">
-        <div id="column0" class="column currentPlayer">
+        <div id="column0" class="column">
             <label for="playerName">Player Name:</label>
             <input type="text" id="playerName0" name="playerName" value=""><br>
             <h2 id="title0">Player 3 - commoner</h2>
@@ -437,7 +555,7 @@
                 <input class="mycardscheckbox" type="checkbox" id="card3" name="card3" value="3">
                 <label class="card black" for="card3">&#127185</label>
             </span>
-            <button onclick="SendToPile()">Send to pile</button>
+            <br><button id="sendToPile" onclick="sendToPile()"><br>----------- Send to pile --------------<br><br></button>
         </div>
     </div>
 

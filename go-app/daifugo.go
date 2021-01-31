@@ -131,12 +131,12 @@ func (t valueType) getNormalOrder() int {
 type titleType int
 
 const (
-	notDecided titleType = 0
-	beggar               = 1
-	poor                 = 2
-	commoner             = 3
-	rich                 = 4
-	tycoon               = 5
+	notDecided titleType = -1
+	tycoon               = 0
+	rich                 = 1
+	commoner             = 2
+	poor                 = 3
+	beggar               = 4
 )
 
 func (t titleType) getTitle() string {
@@ -157,6 +157,26 @@ func (t titleType) getTitle() string {
 	return ""
 }
 
+func newTitleType(outOrder int, numPlayer int) titleType {
+	if numPlayer == 2 {
+		lut := []titleType{rich, poor}
+		return lut[outOrder]
+	} else if numPlayer == 3 {
+		lut := []titleType{rich, commoner, poor}
+		return lut[outOrder]
+	} else if numPlayer == 4 {
+		lut := []titleType{tycoon, rich, poor, beggar}
+		return lut[outOrder]
+	} else if numPlayer == 5 {
+		lut := []titleType{tycoon, rich, commoner, poor, beggar}
+		return lut[outOrder]
+	} else if numPlayer == 6 {
+		lut := []titleType{tycoon, rich, commoner, commoner, poor, beggar}
+		return lut[outOrder]
+	}
+	return notDecided
+}
+
 type card struct {
 	Suit  suitType  `json:"suit"`
 	Value valueType `json:"value"`
@@ -175,37 +195,6 @@ func (c card) isLikeA2(isRevolution bool) bool {
 
 func (c card) isSame(b card) bool {
 	return c.Value == b.Value && c.Suit == b.Suit
-}
-
-type player struct {
-	Name   string    `json:"name"`
-	Cards  []card    `json:"cards"`
-	MyTurn bool      `json:"myTurn"`
-	Title  titleType `json:"title"`
-	IsOut  bool      `json:"isOut"`
-}
-
-func newPlayer(name string) *player {
-	p := new(player)
-	p.Name = name
-	p.Cards = make([]card, 0, 14)
-	return p
-}
-
-func (p player) inHand(cards []card) error {
-	// do you have these cards in your hand
-	numFound := 0
-	for _, inhand := range p.Cards {
-		for _, toplay := range cards {
-			if inhand.isSame(toplay) {
-				numFound++
-			}
-		}
-	}
-	if len(cards) == numFound {
-		return nil
-	}
-	return errors.New("cards to play are not in hand")
 }
 
 type turnActionType string
@@ -236,10 +225,11 @@ const (
 	nextTurn                         = "nextTurn"
 	playerOut                        = "playerOut"
 	gameOver                         = "gameOver"
+	newHand                          = "newHand"
 )
 
 func (t gameActionType) String() string {
-	types := [...]string{"invaildGameAction", "nextTurn", "playerOut", "gameOver"}
+	types := [...]string{"invaildGameAction", "nextTurn", "playerOut", "gameOver", "newHand"}
 
 	x := string(t)
 	for _, v := range types {
@@ -252,19 +242,54 @@ func (t gameActionType) String() string {
 }
 
 type actionType struct {
-	TurnAction   turnActionType `json:"turnAction"`
-	GameAction   gameActionType `json:"gameAction"`
-	IsSkip       bool           `json:"isSkip"`
-	IsRevolution bool           `json:"isRevolution"`
+	TurnAction    turnActionType `json:"turnAction"`
+	GameAction    gameActionType `json:"gameAction"`
+	IsSkip        bool           `json:"isSkip"`
+	IsRevolution  bool           `json:"isRevolution"`
+	NumValidSkips int            `json:"numValidSkips"`
 }
 
-func newAction(turnAction turnActionType, gameAction gameActionType) actionType {
+func newAction(turnAction turnActionType, gameAction gameActionType, numValidSkips int) actionType {
 	a := actionType{}
 	a.TurnAction = turnAction
 	a.GameAction = gameAction
 	a.IsSkip = false
 	a.IsRevolution = false
+	a.NumValidSkips = numValidSkips
 	return a
+}
+
+type player struct {
+	Name     string    `json:"name"`
+	Cards    []card    `json:"cards"`
+	MyTurn   bool      `json:"myTurn"`
+	Title    titleType `json:"title"`
+	OutOrder int       `json:"outOrder"` // -1 if not out.  0 if the first person out etc...
+}
+
+func newPlayer(name string) *player {
+	p := new(player)
+	p.Name = name
+	p.Cards = make([]card, 0, 14)
+	p.OutOrder = -1
+	p.Title = notDecided
+	return p
+}
+
+func (p player) inHand(cards []card) error {
+	// do you have these cards in your hand
+	numFound := 0
+	for _, inhand := range p.Cards {
+		for _, toplay := range cards {
+			if inhand.isSame(toplay) {
+				numFound++
+			}
+		}
+	}
+	if len(cards) == numFound {
+		return nil
+	}
+	return errors.New("cards to play are not in hand")
 }
 
 type game struct {
@@ -278,6 +303,7 @@ type game struct {
 	lock           *sync.RWMutex
 	isRevolution   bool
 	lastAction     actionType
+	outCount       int
 }
 
 func (g game) countPlayer() int {
@@ -301,6 +327,15 @@ func (g game) findPlayer(name string) *player {
 
 func (g game) findPlayerIndex(name string) int {
 	for i, p := range g.players {
+		if p != nil && p.Name == name {
+			return i
+		}
+	}
+	return -1
+}
+
+func (g game) findPlayingPlayerIndex(name string) int {
+	for i, p := range g.playingPlayers {
 		if p != nil && p.Name == name {
 			return i
 		}
@@ -349,25 +384,39 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 		g.pile = append([][]card{cards}, g.pile...)
 	}
 
+	if a.GameAction == newHand {
+		emptyPile := make([]card, 0)
+		g.pile = append([][]card{emptyPile}, g.pile...)
+	}
+
 	g.lastAction = a
 	if a.IsRevolution {
 		g.isRevolution = true
 	}
 
 	// give the turn to the next person
-	i := g.findPlayerIndex(p.Name)
+	i := g.findPlayingPlayerIndex(p.Name)
 	pNext := g.playingPlayers[(i+1)%len(g.playingPlayers)]
 
 	// end this players turn
 	p.MyTurn = false
 	// remove current player if out
-	if a.GameAction == playerOut {
-		p.IsOut = true
+	if a.GameAction == playerOut || a.GameAction == gameOver {
+		p.OutOrder = g.outCount
+		p.Title = newTitleType(p.OutOrder, len(g.players))
+		g.outCount++
 		g.removePlayingPlayer(p.Name)
+		// remove losing player too if game is over.
+		if a.GameAction == gameOver {
+			pNext.OutOrder = g.outCount
+			pNext.Title = newTitleType(pNext.OutOrder, len(g.players))
+			g.outCount++
+			g.removePlayingPlayer(pNext.Name)
+		}
 	}
 
 	// skip player if skipped
-	i = g.findPlayerIndex(pNext.Name)
+	i = g.findPlayingPlayerIndex(pNext.Name)
 	if a.IsSkip {
 		pNext = g.playingPlayers[(i+1)%len(g.playingPlayers)]
 	}
@@ -376,12 +425,18 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 }
 
 func (g game) tryPlay(p player, cards []card) (actionType, error) {
-	invaildAction := newAction(invaild, invaildGameAction)
+	invaildAction := newAction(invaild, invaildGameAction, g.lastAction.NumValidSkips+1)
 
 	// you have to have these cards in hand
 	err := p.inHand(cards)
 	if err != nil {
 		return invaildAction, errors.New("invalid move you don't have those cards")
+	}
+
+	// you have to have these cards in hand
+	if g.lastAction.GameAction == gameOver {
+		gameOverAction := newAction(invaild, gameOver, 0)
+		return gameOverAction, nil
 	}
 
 	// check if all cards are same value
@@ -400,7 +455,7 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 			retGameAction = gameOver
 		}
 	}
-	a := newAction(invaild, retGameAction)
+	a := newAction(invaild, retGameAction, g.lastAction.NumValidSkips+1)
 
 	if len(cards) == 4 {
 		a.IsRevolution = true
@@ -409,8 +464,17 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	// If you play 0 cards you could skip your own turn
 	if len(cards) == 0 {
 		a.TurnAction = vaildSkip
+		if g.lastAction.NumValidSkips+2 >= len(g.playingPlayers) {
+			a.GameAction = newHand
+			a.NumValidSkips = 0
+		}
 		return a, nil
 	}
+
+	// NumValidSkips will be reset to 0
+	// as the player is playing some cards
+	// as long as the cards played are valid anyways.
+	a.NumValidSkips = 0
 
 	// if the top is empty it is valid
 	// don't have to worry about pairs of the value
@@ -419,9 +483,22 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 		return a, nil
 	}
 
+	// check to see if the user has a hand full of 2s
+	countOf2Like := 0
+	for _, c := range cards {
+		if c.isLikeA2(g.isRevolution) {
+			countOf2Like++
+		}
+	}
+
+	is2LikeHand := false
+	if len(cards) == countOf2Like {
+		is2LikeHand = true
+	}
+
 	// if the pile and the number of cards
 	// are not within one then this is not a vaild action
-	if len(cards) != len(g.pile[0]) && len(cards)-1 != len(g.pile[0]) {
+	if !(len(cards) == len(g.pile[0]) || (len(cards) == len(g.pile[0])-1 && is2LikeHand)) {
 		return invaildAction, errors.New("not a matching number of cards")
 	}
 
@@ -431,13 +508,19 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	numFoundSame := 0
 
 	for i := range g.pile[0] {
-		onpile := g.pile[0][i]
+		onpile := g.pile[0][i].Value.getNormalOrder()
+		if g.isRevolution {
+			onpile = g.pile[0][i].Value.getReverseOrder()
+		}
 		if i < len(cards) {
-			toplay := cards[i]
-			if onpile.Value < toplay.Value {
+			toplay := cards[i].Value.getNormalOrder()
+			if g.isRevolution {
+				toplay = cards[i].Value.getReverseOrder()
+			}
+			if onpile < toplay {
 				numFoundGT++
 			}
-			if onpile.Value == toplay.Value {
+			if onpile == toplay {
 				numFoundSame++
 			}
 		}
@@ -447,6 +530,15 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	if numFoundGT < numFoundSame {
 		numFound = numFoundSame
 		a.IsSkip = true
+
+		// if you skip and the number of playing players is 2
+		// you win the hand
+		if 2 == len(g.playingPlayers) {
+			a.GameAction = newHand
+			a.NumValidSkips = 0
+		} else {
+			a.NumValidSkips++
+		}
 	}
 
 	if cards[0].isLikeA2(g.isRevolution) && len(cards) == numFoundGT {
@@ -479,6 +571,7 @@ type createGameForm struct {
 	PlayerName string `json:"playerName"`
 	NumPlayers int    `json:"numPlayers"`
 	Seed       int64  `json:"seed"`
+	SmallDeck  bool   `json:"smallDeck"`
 }
 
 type createGameReturn struct {
@@ -493,15 +586,29 @@ func addGame(f createGameForm) createGameReturn {
 		g.rand = rand.New(rand.NewSource(f.Seed))
 	}
 	g.lock = &sync.RWMutex{}
-	g.deck = make([]card, 52, 52)
+	// eat a lot of cards to make games faster to test
 	g.state = "notStarted"
-	for i := range g.deck {
-		g.deck[i].Suit = suitType(i % 4)
-		g.deck[i].Value = valueType((i / 4) + 1)
+	// hack the deck to have less cards for faster
+	// testing with 2 players.
+	if f.SmallDeck {
+		g.deck = make([]card, 16, 16)
+		values := []int{2, 3, 12, 13}
+		for i := range g.deck {
+			g.deck[i].Suit = suitType(i % 4)
+			g.deck[i].Value = valueType(values[(i / 4)])
+		}
+	} else {
+		g.deck = make([]card, 52, 52)
+		for i := range g.deck {
+			g.deck[i].Suit = suitType(i % 4)
+			g.deck[i].Value = valueType((i / 4) + 1)
+		}
 	}
 	g.players = make([]*player, f.NumPlayers, f.NumPlayers)
 	g.playingPlayers = make([]*player, f.NumPlayers, f.NumPlayers)
 	g.rand.Shuffle(len(g.deck), func(i, j int) { g.deck[i], g.deck[j] = g.deck[j], g.deck[i] })
+	g.outCount = 0
+
 	gGameLock.Lock()
 	defer gGameLock.Unlock()
 

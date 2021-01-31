@@ -176,6 +176,7 @@
             gameName: document.getElementById("gameName").value,
             numPlayers: parseInt(document.getElementById("numPlayers").value),
             seed: parseInt(document.getElementById("seed").value),
+            smallDeck: document.getElementById("smallDeck").checked,
         }
 
         json = JSON.stringify(data)
@@ -230,9 +231,11 @@
         <label for="name">Game Name:</label>
         <input type="text" id="gameName" name="name" value="MyGameName"><br>
         <label for="numPlayers">NumPlayers:</label>
-        <input type="number" id="numPlayers" name="numPlayers" max="6" min="3" value="4"><br>
+        <input type="number" id="numPlayers" name="numPlayers" max="6" min="2" value="4"><br>
         <label for="seed">Seed:</label>
         <input type="number" id="seed" name="seed" value="4"><br>
+        <label for="smallDeck">SmallDeck:</label>
+        <input type="checkbox" id="smallDeck" name="smallDeck" value="true" checked>
     </form>
     <button type="submit" value="Create New Game" onclick="createDaifugoGame(event);">Create Game</button>
 

@@ -111,6 +111,25 @@
         sock.send(msg);
     }
 
+
+    function titleString(titleNum) {
+        switch (titleNum) {
+            case -1:
+                return "notDecided"
+            case 0:
+                return "tycoon"
+            case 1:
+                return "rich"
+            case 2:
+                return "commoner"
+            case 3:
+                return "poor"
+            case 4:
+                return "beggar"
+        }
+        return ""
+    }
+
     function cardToUnicodeString(cv) {
         // unicode is 
         // Ace, 2, 3, 4, ... 9, 10, J, C, Q, K
@@ -143,7 +162,7 @@
             <table>
                 <tr style="width:50%" class="styletable">
                     <th style="width:10%">MyTurn</th>
-                    <th style="width:10%">IsOut</th>
+                    <th style="width:10%">OutOrder</th>
                 </tr>
             </table>
             <label for="playerName">Player Name:</label>
@@ -152,7 +171,7 @@
         var str = defaultData.replaceAll("column1", "column" + columnIndex);
         str = str.replaceAll("playerName1", "playerName" + columnIndex);
         str = str.replaceAll("title1", "title" + columnIndex);
-        str = str.replaceAll("Player 1 - tycoon", "Player " + i + " - " + p.title);
+        str = str.replaceAll("Player 1 - tycoon", "Player " + i + " - " + titleString(p.title));
         str = str.replaceAll("Bill", p.name);
         if (p.myTurn) {
             str = str.replaceAll("MyTurn", "Turn");
@@ -171,10 +190,10 @@
                 str = str.replaceAll('class="column"', 'class="column "');
             }
         }
-        if (p.isOut) {
-            str = str.replaceAll("IsOut", "Out");
+        if (p.outOrder === -1) {
+            str = str.replaceAll("OutOrder", "InGame");
         } else {
-            str = str.replaceAll("IsOut", "InGame");
+            str = str.replaceAll("OutOrder", "OutOrder " + p.outOrder.toString());
         }
 
 
@@ -192,6 +211,7 @@
         document.getElementById("gameAction").innerHTML = game.lastAction.gameAction;
         document.getElementById("wasSkip").innerHTML = game.lastAction.isSkip;
         document.getElementById("wasRevolution").innerHTML = game.lastAction.isRevolution;
+        document.getElementById("numValidSkips").innerHTML = game.lastAction.numValidSkips;
 
         var otherPlayers = "";
 
@@ -319,7 +339,7 @@
                     e.innerHTML = "<br>----------- Take Turn --------------<br><br>"
                 }
 
-                if(!takeTurnForm.justTry) {
+                if (!takeTurnForm.justTry) {
                     // reload everyone data
                     let mymsg = JSON.stringify({ msg: 'Taken a turn ' + document.getElementById("playerName0").value, path: 'localhost' })
                     wsSend(mymsg)
@@ -341,7 +361,7 @@
             }
         }
 
-        if(cardsToSend.length==0) {
+        if (cardsToSend.length == 0) {
             return "vaildSkip"
         }
 
@@ -498,7 +518,7 @@
             <th style="width:10%">state</th>
             <th style="width:10%">isRevolution</th>
         </tr>
-        <tbody id="gamesTable">
+        <tbody>
             <tr>
                 <td id="state">Started</td>
                 <td id="isRevolution">No Revolution</td>
@@ -507,7 +527,7 @@
     </table>
 
 
-    <h2>What happened last tune</h2>
+    <h2>What happened last turn</h2>
 
     <table>
         <tr style="width:50%" class="styletable">
@@ -515,13 +535,15 @@
             <th style="width:10%">GameAction</th>
             <th style="width:10%">Was Skip</th>
             <th style="width:10%">Was Revolution</th>
+            <th style="width:10%">Number of player since last play</th>
         </tr>
-        <tbody id="gamesTable">
+        <tbody>
             <tr>
                 <td id="turnAction">valid</td>
                 <td id="gameAction">nextTurn</td>
                 <td id="wasSkip">No Skip</td>
                 <td id="wasRevolution">No Revolution</td>
+                <td id="numValidSkips">0</td>
             </tr>
         </tbody>
     </table>
@@ -555,7 +577,8 @@
                 <input class="mycardscheckbox" type="checkbox" id="card3" name="card3" value="3">
                 <label class="card black" for="card3">&#127185</label>
             </span>
-            <br><button id="sendToPile" onclick="sendToPile()"><br>----------- Send to pile --------------<br><br></button>
+            <br><button id="sendToPile" onclick="sendToPile()"><br>----------- Send to pile
+                --------------<br><br></button>
         </div>
     </div>
 

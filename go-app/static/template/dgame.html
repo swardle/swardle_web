@@ -200,7 +200,33 @@
         return str;
     }
 
-    function readerAllGameData(game) {
+    function setToPileButton(action) {
+        var e = document.getElementById("sendToPile")
+        if (e === null) {
+            return
+        }
+        if (action === "invaild") {
+            e.disabled = true
+            e.innerHTML = "<br>----------- Invaild Turn -----------<br><br>"
+        } else if (action === "invaildTrade") {
+            e.disabled = true
+            e.innerHTML = "<br>----------- invaild Trade ----------<br><br>"
+        } else if (action === "vaildSkip") {
+            e.disabled = false
+            e.innerHTML = "<br>----------- Skip Turn --------------<br><br>"
+        } else if (action === "vaildTrade") {
+            e.disabled = false
+            e.innerHTML = "<br>----------- Trade Cards ------------<br><br>"
+        } else if (action === "vaildRestart") {
+            e.disabled = false
+            e.innerHTML = "<br>----------- Restart Game ------------<br><br>"
+        } else if (action === "vaildTurn") {
+            e.disabled = false
+            e.innerHTML = "<br>----------- Take Turn --------------<br><br>"
+        }
+    }
+
+    function renderAllGameData(game) {
         gGame = game
         var playerName = document.getElementById("playerName0").value;
         var gameName = document.getElementById("gameName").innerHTML;
@@ -268,12 +294,10 @@
         str += c;
 
         if (p.myTurn) {
-
             str += '<br><button id="sendToPile" onclick="sendToPile()"><br>----------- Skip Turn --------------<br><br></button>'
         }
 
         document.getElementById("currentPlayer").innerHTML = str;
-
 
         const defaultSuitPile = [
             // spades
@@ -298,9 +322,15 @@
         }
 
         document.getElementById("pile").innerHTML = c;
+
+        // Always try to take a turn to see what the 
+        // server things are valid actions
+        if (p.myTurn) {
+            takeTurn("justTry")
+        }
     }
 
-    function takeTurn(justTry) {
+    function takeTurn(action) {
 
         var cardsToSend = []
         var elements = document.getElementsByClassName("mycardscheckbox");
@@ -316,29 +346,23 @@
             "gameName": document.getElementById("gameName").innerHTML,
             "playerName": playerName,
             "cards": cardsToSend,
-            "justTry": justTry === "justTry" ? true : false
+            "justTry": action === "justTry" ? true : false
         }
 
         var json = JSON.stringify(takeTurnForm)
 
-        var xmlhttp = new XMLHttpRequest();
+        var xmlhttp = new XMLHttpRequest();        
         var url = "/takeTurnDaifugoGame";
+        if (gGame.state === "trading") {
+            url = "/tradeCardsDaifugoGame";
+        }
 
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 var action = JSON.parse(this.responseText);
-                var e = document.getElementById("sendToPile")
-                if (action === null || action.turnAction === "invaild") {
-                    e.disabled = true
-                    e.innerHTML = "<br>----------- invaild turn -----------<br><br>"
-                } else if (action.turnAction === "vaildSkip") {
-                    e.disabled = false
-                    e.innerHTML = "<br>----------- Skip Turn --------------<br><br>"
-                } else if (action.turnAction === "vaildTurn") {
-                    e.disabled = false
-                    e.innerHTML = "<br>----------- Take Turn --------------<br><br>"
+                if (action !== null && action.turnAction !== null) {
+                    setToPileButton(action.turnAction)
                 }
-
                 if (!takeTurnForm.justTry) {
                     // reload everyone data
                     let mymsg = JSON.stringify({ msg: 'Taken a turn ' + document.getElementById("playerName0").value, path: 'localhost' })
@@ -351,49 +375,9 @@
         xmlhttp.send(json);
     }
 
-    function validateMoveStatus() {
-        cardsToSend = []
-        var elements = document.getElementsByClassName("mycardscheckbox");
-        for (var i = 0; i < elements.length; i++) {
-            e = elements[i]
-            if (e.checked) {
-                cardsToSend.push(JSON.parse(e.value))
-            }
-        }
-
-        if (cardsToSend.length == 0) {
-            return "vaildSkip"
-        }
-
-        var oc = cardsToSend[0]
-        for (var i = 1; i < cardsToSend.length; i++) {
-            c = cardsToSend[i]
-            if (c.value !== oc.value) {
-                return "invaild"
-            }
-            oc = c
-        }
-
-        return "vaildTurn"
-
-    }
-
     function validateMoves() {
-        var action = validateMoveStatus()
-        e = document.getElementById("sendToPile")
-        if (action == "vaildTurn") {
-            e.disabled = true
-            e.innerHTML = "<br>----------- Take Turn --------------<br><br>"
-        } else if (action == "vaildSkip") {
-            e.disabled = true
-            e.innerHTML = "<br>----------- Skip Turn --------------<br><br>"
-        } else {
-            e.disabled = true
-            e.innerHTML = "<br>----------- invaild turn -----------<br><br>"
-        }
         takeTurn("justTry")
     }
-
 
     function sendToPile() {
         takeTurn("takeTurn")
@@ -422,7 +406,7 @@
                     var url = encodeURI(uri);
                     window.location.replace(url);
                 } else {
-                    readerAllGameData(game, playerName)
+                    renderAllGameData(game, playerName)
                 }
             }
         };

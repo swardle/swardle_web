@@ -35,19 +35,20 @@ type stateType string
 
 const (
 	started    stateType = "started"
-	notStarted           = "notStarted"
+	trading    stateType = "trading"
+	notStarted stateType = "notStarted"
 )
 
 func (t stateType) IsValid() error {
 	switch t {
-	case started, notStarted:
+	case started, trading, notStarted:
 		return nil
 	}
 	return errors.New("Invalid stateType")
 }
 
 func (t stateType) String() string {
-	types := [...]string{"started", "notStarted"}
+	types := [...]string{"started", "trading", "notStarted"}
 
 	x := string(t)
 	for _, v := range types {
@@ -132,11 +133,11 @@ type titleType int
 
 const (
 	notDecided titleType = -1
-	tycoon               = 0
-	rich                 = 1
-	commoner             = 2
-	poor                 = 3
-	beggar               = 4
+	tycoon     titleType = 0
+	rich       titleType = 1
+	commoner   titleType = 2
+	poor       titleType = 3
+	beggar     titleType = 4
 )
 
 func (t titleType) getTitle() string {
@@ -183,7 +184,7 @@ type card struct {
 }
 
 func (c card) is3OfClubs() bool {
-	return c.Value == 2 && c.Suit == club
+	return c.Value == 3 && c.Suit == club
 }
 
 func (c card) isLikeA2(isRevolution bool) bool {
@@ -200,13 +201,16 @@ func (c card) isSame(b card) bool {
 type turnActionType string
 
 const (
-	vaildTurn turnActionType = "vaildTurn"
-	vaildSkip turnActionType = "vaildSkip"
-	invaild                  = "invaild"
+	vaildTurn    turnActionType = "vaildTurn"
+	vaildSkip    turnActionType = "vaildSkip"
+	vaildTrade   turnActionType = "vaildTrade"
+	vaildRestart turnActionType = "vaildRestart"
+	invaildTrade turnActionType = "invaildTrade"
+	invaild      turnActionType = "invaild"
 )
 
 func (t turnActionType) String() string {
-	types := [...]string{"vaildTurn", "vaildSkip", "invaild"}
+	types := [...]string{"vaildTurn", "vaildSkip", "vaildTrade", "vaildRestart", "invaildTrade", "invaild"}
 
 	x := string(t)
 	for _, v := range types {
@@ -222,10 +226,10 @@ type gameActionType string
 
 const (
 	invaildGameAction gameActionType = "invaildGameAction"
-	nextTurn                         = "nextTurn"
-	playerOut                        = "playerOut"
-	gameOver                         = "gameOver"
-	newHand                          = "newHand"
+	nextTurn          gameActionType = "nextTurn"
+	playerOut         gameActionType = "playerOut"
+	gameOver          gameActionType = "gameOver"
+	newHand           gameActionType = "newHand"
 )
 
 func (t gameActionType) String() string {
@@ -276,7 +280,7 @@ func newPlayer(name string) *player {
 	return p
 }
 
-func (p player) inHand(cards []card) error {
+func (p player) inHand(cards []card) bool {
 	// do you have these cards in your hand
 	numFound := 0
 	for _, inhand := range p.Cards {
@@ -287,9 +291,9 @@ func (p player) inHand(cards []card) error {
 		}
 	}
 	if len(cards) == numFound {
-		return nil
+		return true
 	}
-	return errors.New("cards to play are not in hand")
+	return false
 }
 
 type game struct {
@@ -302,8 +306,10 @@ type game struct {
 	pile           [][]card
 	lock           *sync.RWMutex
 	isRevolution   bool
+	smallDeck      bool
 	lastAction     actionType
 	outCount       int
+	tradedCount    int
 }
 
 func (g game) countPlayer() int {
@@ -354,8 +360,7 @@ func (g *game) removePlayingPlayer(name string) {
 	}
 }
 
-func (g *game) doAction(p *player, cards []card, a actionType) {
-
+func (p *player) removeCardsFromHand(cards []card) {
 	// remove the cards played
 	// find the indexs of the cards to delete
 	toDelete := make([]int, 0, 4)
@@ -378,7 +383,10 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 		p.Cards[len(p.Cards)-1] = card{}                         // Erase last element (write zero value).
 		p.Cards = p.Cards[:len(p.Cards)-1]                       // Truncate slice.
 	}
+}
 
+func (g *game) doAction(p *player, cards []card, a actionType) {
+	p.removeCardsFromHand(cards)
 	if len(cards) != 0 {
 		// add the cards to the top of the pile
 		g.pile = append([][]card{cards}, g.pile...)
@@ -390,12 +398,17 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 	}
 
 	g.lastAction = a
-	if a.IsRevolution {
+	if a.IsRevolution && g.isRevolution == false {
 		g.isRevolution = true
+	} else if a.IsRevolution && g.isRevolution == true {
+		g.isRevolution = false
 	}
 
 	// give the turn to the next person
 	i := g.findPlayingPlayerIndex(p.Name)
+	if i == -1 {
+		fmt.Println("I am here")
+	}
 	pNext := g.playingPlayers[(i+1)%len(g.playingPlayers)]
 
 	// end this players turn
@@ -416,8 +429,12 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 	}
 
 	// skip player if skipped
+	// note there will be zero players if game over. don't div by 0
 	i = g.findPlayingPlayerIndex(pNext.Name)
-	if a.IsSkip {
+	if i == -1 {
+		fmt.Println("I am here")
+	}
+	if a.IsSkip && a.GameAction != gameOver {
 		pNext = g.playingPlayers[(i+1)%len(g.playingPlayers)]
 	}
 
@@ -427,16 +444,15 @@ func (g *game) doAction(p *player, cards []card, a actionType) {
 func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	invaildAction := newAction(invaild, invaildGameAction, g.lastAction.NumValidSkips+1)
 
-	// you have to have these cards in hand
-	err := p.inHand(cards)
-	if err != nil {
-		return invaildAction, errors.New("invalid move you don't have those cards")
+	// can only restart game if gameOver
+	if g.lastAction.GameAction == gameOver {
+		gameOverAction := newAction(vaildRestart, gameOver, 0)
+		return gameOverAction, nil
 	}
 
 	// you have to have these cards in hand
-	if g.lastAction.GameAction == gameOver {
-		gameOverAction := newAction(invaild, gameOver, 0)
-		return gameOverAction, nil
+	if !p.inHand(cards) {
+		return invaildAction, errors.New("invalid move you don't have those cards")
 	}
 
 	// check if all cards are same value
@@ -448,14 +464,16 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 		}
 	}
 
+	numPlayerRemoved := 0
 	retGameAction := gameActionType(nextTurn)
 	if len(cards) == len(p.Cards) {
 		retGameAction = playerOut
+		numPlayerRemoved++
 		if len(g.playingPlayers) == 2 {
 			retGameAction = gameOver
 		}
 	}
-	a := newAction(invaild, retGameAction, g.lastAction.NumValidSkips+1)
+	a := newAction(invaild, retGameAction, g.lastAction.NumValidSkips+1-numPlayerRemoved)
 
 	if len(cards) == 4 {
 		a.IsRevolution = true
@@ -474,7 +492,8 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 	// NumValidSkips will be reset to 0
 	// as the player is playing some cards
 	// as long as the cards played are valid anyways.
-	a.NumValidSkips = 0
+	// set to -1 if a player was removed IE playerOut
+	a.NumValidSkips = -numPlayerRemoved
 
 	// if the top is empty it is valid
 	// don't have to worry about pairs of the value
@@ -534,7 +553,11 @@ func (g game) tryPlay(p player, cards []card) (actionType, error) {
 		// if you skip and the number of playing players is 2
 		// you win the hand
 		if 2 == len(g.playingPlayers) {
-			a.GameAction = newHand
+			// if the game is over then
+			// you don't need a new hand.
+			if a.GameAction == nextTurn {
+				a.GameAction = newHand
+			}
 			a.NumValidSkips = 0
 		} else {
 			a.NumValidSkips++
@@ -578,6 +601,27 @@ type createGameReturn struct {
 	GameName string `json:"gameName"`
 }
 
+func (g *game) restartGame() {
+	// hack the deck to have less cards for faster
+	// testing with 2 players.
+	if g.smallDeck {
+		g.deck = make([]card, 16, 16)
+		values := []int{2, 3, 12, 13}
+		for i := range g.deck {
+			g.deck[i].Suit = suitType(i % 4)
+			g.deck[i].Value = valueType(values[(i / 4)])
+		}
+	} else {
+		g.deck = make([]card, 52, 52)
+		for i := range g.deck {
+			g.deck[i].Suit = suitType(i % 4)
+			g.deck[i].Value = valueType((i / 4) + 1)
+		}
+	}
+	g.rand.Shuffle(len(g.deck), func(i, j int) { g.deck[i], g.deck[j] = g.deck[j], g.deck[i] })
+	g.startGame(trading)
+}
+
 func addGame(f createGameForm) createGameReturn {
 	g := game{}
 	if f.Seed == 0 {
@@ -590,7 +634,8 @@ func addGame(f createGameForm) createGameReturn {
 	g.state = "notStarted"
 	// hack the deck to have less cards for faster
 	// testing with 2 players.
-	if f.SmallDeck {
+	g.smallDeck = f.SmallDeck
+	if g.smallDeck {
 		g.deck = make([]card, 16, 16)
 		values := []int{2, 3, 12, 13}
 		for i := range g.deck {
@@ -607,7 +652,7 @@ func addGame(f createGameForm) createGameReturn {
 	g.players = make([]*player, f.NumPlayers, f.NumPlayers)
 	g.playingPlayers = make([]*player, f.NumPlayers, f.NumPlayers)
 	g.rand.Shuffle(len(g.deck), func(i, j int) { g.deck[i], g.deck[j] = g.deck[j], g.deck[i] })
-	g.outCount = 0
+	g.lastAction = newAction(invaild, invaildGameAction, 0)
 
 	gGameLock.Lock()
 	defer gGameLock.Unlock()
@@ -694,7 +739,7 @@ func joinGame(f joinGameForm) error {
 
 	pcount := g.countPlayer()
 	if pcount == len(g.players) {
-		g.startGame()
+		g.startGame(started)
 	}
 
 	// update the global structure
@@ -750,9 +795,16 @@ func quitGame(f quitGameForm) error {
 	return nil
 }
 
-func (g *game) startGame() error {
-	if g.state != "notStarted" {
-		return errors.New("Can't start game once started")
+func (g *game) startGame(startingState stateType) error {
+	if g.state != "notStarted" && g.lastAction.GameAction != gameOver {
+		return errors.New("must be a new game or restart")
+	}
+
+	g.pile = make([][]card, 0, 40)
+
+	// remove all old cards from hands.
+	for _, p := range g.players {
+		p.Cards = make([]card, 0, 14)
 	}
 
 	// deal all cards out.
@@ -777,18 +829,43 @@ func (g *game) startGame() error {
 		})
 	}
 
-	// find who has the 3 of clubs
-	// it will be his turn
-	for _, p := range g.players {
-		for _, c := range p.Cards {
-			if c.is3OfClubs() {
+	if startingState != trading {
+		// find who has the 3 of clubs
+		// it will be his turn first.
+		// or on 2nd round the beggar goes first.
+		for _, p := range g.players {
+			for _, c := range p.Cards {
+				if p.Title == notDecided && c.is3OfClubs() {
+					p.MyTurn = true
+					break
+				}
+			}
+		}
+	} else {
+		for _, p := range g.players {
+			if p.Title != commoner && p.Title != notDecided {
 				p.MyTurn = true
-				break
 			}
 		}
 	}
 
-	g.state = started
+	sort.SliceStable(g.players, func(i, j int) bool {
+		vi := g.players[i].OutOrder
+		vj := g.players[j].OutOrder
+		return vi < vj
+	})
+
+	g.playingPlayers = make([]*player, len(g.players), len(g.players))
+	for i, p := range g.players {
+		g.playingPlayers[i] = p
+	}
+
+	g.outCount = 0
+	g.tradedCount = 0
+	g.lastAction = newAction(invaild, invaildGameAction, 0)
+	g.isRevolution = false
+
+	g.state = startingState
 
 	return nil
 }
@@ -828,7 +905,12 @@ func takeTurn(f takeTurnForm) (actionType, error) {
 	}
 
 	if !f.JustTry {
-		g.doAction(p, f.Cards, action)
+		// if the game is over just restart game
+		if g.lastAction.GameAction == gameOver {
+			g.restartGame()
+		} else {
+			g.doAction(p, f.Cards, action)
+		}
 
 		// update the global structure
 		gGames[f.GameName] = g
@@ -861,6 +943,219 @@ func takeTurnPost(rw http.ResponseWriter, req *http.Request) {
 
 	// got the input we expected: no more, no less
 	action, err := takeTurn(t)
+	// don't handle the error of bad turn if they just seeing if they can do its
+	if err != nil && !t.JustTry {
+		// bad JSON or unrecognized json field
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	js, err := json.Marshal(action)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Write(js)
+
+}
+
+func isTop2Cards(cardInHand []card, cards []card) bool {
+	if len(cards) != 2 {
+		return false
+	}
+
+	l1 := -1
+	l2 := -1
+	for _, c := range cardInHand {
+		if c.Value.getNormalOrder() >= l1 {
+			l2 = l1
+			l1 = c.Value.getNormalOrder()
+		}
+	}
+	if cards[1].Value.getNormalOrder() == l1 && cards[0].Value.getNormalOrder() == l2 {
+		return true
+	}
+	return false
+}
+
+func isTopCard(cardInHand []card, cards []card) bool {
+	if len(cards) != 1 {
+		return false
+	}
+
+	l1 := -1
+	for _, c := range cardInHand {
+		if c.Value.getNormalOrder() >= l1 {
+			l1 = c.Value.getNormalOrder()
+		}
+	}
+	if cards[0].Value.getNormalOrder() == l1 {
+		return true
+	}
+	return false
+}
+
+type tradeActionType struct {
+	TurnAction turnActionType `json:"turnAction"`
+}
+
+func (g game) tryTrade(sp player, cards []card) (tradeActionType, error) {
+	if !sp.inHand(cards) {
+		return tradeActionType{invaildTrade}, nil
+	}
+
+	sort.SliceStable(cards, func(i, j int) bool {
+		vi := int(cards[i].Suit) + (cards[i].Value.getNormalOrder() * 100)
+		vj := int(cards[j].Suit) + (cards[j].Value.getNormalOrder() * 100)
+		return vi < vj
+	})
+
+	if sp.Title == tycoon && len(cards) == 2 {
+		return tradeActionType{vaildTrade}, nil
+	} else if sp.Title == rich && len(cards) == 1 {
+		return tradeActionType{vaildTrade}, nil
+	} else if sp.Title == poor && len(cards) == 1 {
+		action := tradeActionType{invaildTrade}
+		if isTopCard(sp.Cards, cards) {
+			action = tradeActionType{vaildTrade}
+		}
+		return action, nil
+	} else if sp.Title == beggar && len(cards) == 2 {
+		action := tradeActionType{invaildTrade}
+		if isTop2Cards(sp.Cards, cards) {
+			action = tradeActionType{vaildTrade}
+		}
+		return action, nil
+	}
+	return tradeActionType{invaildTrade}, nil
+}
+
+func (g *game) doTrade(sp *player, dp *player, cards []card) {
+	sp.removeCardsFromHand(cards)
+	dp.Cards = append(dp.Cards, cards...)
+	sort.SliceStable(dp.Cards, func(i, j int) bool {
+		vi := int(dp.Cards[i].Suit) + (dp.Cards[i].Value.getNormalOrder() * 100)
+		vj := int(dp.Cards[j].Suit) + (dp.Cards[j].Value.getNormalOrder() * 100)
+		return vi < vj
+	})
+
+	sp.MyTurn = false
+
+	// start the game on the last trade.
+	g.tradedCount++
+	if g.tradedCount >= len(g.players) {
+		g.state = started
+
+		// find who has the 3 of clubs
+		// it will be his turn first.
+		// or on 2nd round the beggar goes first.
+		for _, p := range g.players {
+			if p.Title == beggar {
+				p.MyTurn = true
+				break
+			}
+		}
+
+	}
+}
+
+type tradeCardsForm struct {
+	GameName   string `json:"gameName"`
+	PlayerName string `json:"playerName"`
+	Cards      []card `json:"cards"`
+	JustTry    bool   `json:"justTry"`
+}
+
+func (g game) findDestPlayer(p player) int {
+	oppositeTitle := notDecided
+	if p.Title == tycoon {
+		oppositeTitle = beggar
+	} else if p.Title == rich {
+		oppositeTitle = poor
+	} else if p.Title == poor {
+		oppositeTitle = rich
+	} else if p.Title == beggar {
+		oppositeTitle = tycoon
+	}
+
+	for i, dp := range g.players {
+		if dp.Title == oppositeTitle {
+			return i
+		}
+	}
+	return -1
+}
+
+func tradeCards(f tradeCardsForm) (tradeActionType, error) {
+	var err error
+	gGameLock.RLock()
+	defer gGameLock.RUnlock()
+	g, ok := gGames[f.GameName]
+	if !ok {
+		return tradeActionType{invaildTrade}, errors.New("game does not exist")
+	}
+	// lock this game. don't let 2 player update
+	// this game or something.
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	if g.state != "trading" {
+		return tradeActionType{invaildTrade}, errors.New("can only trade durring trading state")
+	}
+
+	sp := g.findPlayer(f.PlayerName)
+	if sp == nil {
+		return tradeActionType{invaildTrade}, errors.New("bad src player")
+	}
+	di := g.findDestPlayer(*sp)
+	if di == -1 {
+		return tradeActionType{invaildTrade}, errors.New("Can't find player to trade with")
+	}
+	dp := g.players[di]
+	if dp == nil {
+		return tradeActionType{invaildTrade}, errors.New("bad dest player")
+	}
+
+	action, err := g.tryTrade(*sp, f.Cards)
+	if err != nil || action.TurnAction == invaildTrade {
+		return action, errors.New("invaild trade")
+	}
+
+	if !f.JustTry {
+		g.doTrade(sp, dp, f.Cards)
+
+		// update the global structure
+		gGames[f.GameName] = g
+	}
+
+	return action, nil
+}
+
+func tradeCardsPost(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != "POST" {
+		http.Error(rw, "not a post", 500)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	d.DisallowUnknownFields() // catch unwanted fields
+
+	t := tradeCardsForm{}
+	err := d.Decode(&t)
+	if err != nil {
+		// bad JSON or unrecognized json field
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// optional extra check
+	if d.More() {
+		http.Error(rw, "extraneous data after JSON object", http.StatusBadRequest)
+		return
+	}
+
+	// got the input we expected: no more, no less
+	action, err := tradeCards(t)
 	// don't handle the error of bad turn if they just seeing if they can do its
 	if err != nil && !t.JustTry {
 		// bad JSON or unrecognized json field
@@ -1163,6 +1458,7 @@ func StartDaifugoServer() {
 	http.HandleFunc("/joinDaifugoGame", joinGamePost)
 	http.HandleFunc("/killDaifugoGame", killGamePost)
 	http.HandleFunc("/takeTurnDaifugoGame", takeTurnPost)
+	http.HandleFunc("/tradeCardsDaifugoGame", tradeCardsPost)
 	http.HandleFunc("/daifugoGames.json", getGames)
 	http.HandleFunc("/randomName.json", getRadomName)
 	http.HandleFunc("/daifugoLoadAllGameData.json", getLoadAllGameData)

@@ -171,6 +171,7 @@
 
 
     function createDaifugoGame(event) {
+        document.getElementById("createGameStatus").innerHTML = "Create a game";
         data = {
             playerName: document.getElementById("playerName").value,
             gameName: document.getElementById("gameName").value,
@@ -187,12 +188,16 @@
         xmlhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 var ret = JSON.parse(this.responseText);
-                document.getElementById("gameName").value = ret.gameName
-                data.gameName = ret.gameName
-                var uri = "/template/dgame.html?playerName=" + data.playerName + "&gameName=" + data.gameName;
-                var url = encodeURI(uri);
-                window.location.replace(url);
-                wsSend()
+                if (ret.gameName !== "") {
+                    document.getElementById("gameName").value = ret.gameName;
+                    data.gameName = ret.gameName;
+                    var uri = "/template/dgame.html?playerName=" + data.playerName + "&gameName=" + data.gameName;
+                    var url = encodeURI(uri);
+                    window.location.replace(url);
+                    wsSend();
+                } else {
+                    document.getElementById("createGameStatus").innerHTML = "Create a game - error can't create the game no more games?";                    
+                }
             }
         };
         xmlhttp.open("POST", url, true);
@@ -237,6 +242,7 @@
         <label for="smallDeck">SmallDeck:</label>
         <input type="checkbox" id="smallDeck" name="smallDeck" value="true" checked>
     </form>
+    <h3 id="createGameStatus">Create a game</h3>
     <button type="submit" value="Create New Game" onclick="createDaifugoGame(event);">Create Game</button>
 
 

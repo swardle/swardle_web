@@ -623,6 +623,9 @@ func (g *game) restartGame() {
 }
 
 func addGame(f createGameForm) createGameReturn {
+	if len(gGames) >= 4 || f.GameName == "" {
+		return createGameReturn{""}
+	}
 	g := game{}
 	if f.Seed == 0 {
 		g.rand = rand.New(rand.NewSource(time.Now().UnixNano()))

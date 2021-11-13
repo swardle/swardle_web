@@ -11,8 +11,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/swardle/swardle_web/pkg/websocket"
+	"websocket"
 )
 
 func serveWs(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {

@@ -1,1 +1,19 @@
-runtime: go114 # or go112 or go113 for the Go 1.12 or Go 1.13 runtime
+runtime: go1.15 # or go112 or go113 for the Go 1.12 or Go 1.13 runtime
+env: flex
+
+# This sample incurs costs to run on the App Engine flexible environment.
+# The settings below are to reduce costs during testing and are not appropriate
+# for production use. For more information, see:
+# https://cloud.google.com/appengine/docs/flexible/nodejs/configuring-your-app-with-app-yaml
+# https://cloud.google.com/appengine/docs/flexible/go/reference/app-yaml
+manual_scaling:
+  instances: 1
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10
+
+# dig into this
+# https://socket.io/get-started/chat/
+network:
+  session_affinity: true

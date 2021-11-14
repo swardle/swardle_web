@@ -11,7 +11,6 @@ source ~/.profile
 mkdir -p ~/go/{bin,src,pkg}
 mkdir -p ~/log
 mkdir -p ~/bin
-mkdir -p ~/go/src/github.com/swardle/go-app/
 go version
 
 sudo apt-get remove purge apache2 apache2-utils
@@ -19,5 +18,10 @@ sudo apt-get autoremove -y
 sudo apt install -y unzip
 
 sudo apt install git-all
+git clone https://github.com/swardle/swardle_web.git
+cd swardle_web
+go mod init github.com/swardle/swardle_web
+go mod tidy
+go build
 
 set +x

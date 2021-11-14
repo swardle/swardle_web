@@ -1,0 +1,181 @@
+﻿<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Scott Wardle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Scott Wardle, Software Engineer Google Stadia, known for C++, systems programming, dyslexic, visualization, metrics, Japanophile.">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/favicon-16x16.png">
+    <link rel="stylesheet" type="text/css" href="css/normalize.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700">
+    <link rel="stylesheet" type="text/css" href="css/menu.css">
+    <link href="dist/css/animsition.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script>
+        (function(i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r;
+            i[r] = i[r] || function() {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date();
+            a = s.createElement(o),
+                m = s.getElementsByTagName(o)[0];
+            a.async = 1;
+            a.src = g;
+            m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-106127893-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+</head>
+
+<body class="animsition">
+    <div class="container">
+        <header class="header_top blog">
+            <div class="hamburgler-menu">
+                <ul class="hamburgler-menu-list">
+                    <li><a class="animsition-link" href="index.html">HOME</a></li>
+                    <li><a class="animsition-link" href="blog.html">BLOG</a></li>
+                    <li><a class="animsition-link" href="about.html">ABOUT</li>
+                    <li><a class="animsition-link" href="contact.html">CONTACT</a></li>
+                    <li><a class="animsition-link" href="presentation.html">PRESENTATION</a></li>
+                </ul>
+            </div>
+            <div id="hamburgler" class="hamburgler-icon-wrapper">
+                <span class="hamburgler-icon"></span>
+            </div>
+            <a href="index.html"><img src="img/logo.png" class="logo"></a>
+            <nav>
+                <ul class="main_nav">
+                    <li><a class="animsition-link" href="index.html">HOME</a></li>
+                    <li><a class="animsition-link" href="blog.html">BLOG</a></li>
+                    <li><a class="animsition-link" href="about.html">ABOUT</a></li>
+                    <li><a class="animsition-link" href="contact.html">CONTACT</a></li>
+                    <li><a class="animsition-link" href="presentation.html">PRESENTATION</a></li>
+                </ul>
+            </nav>
+            <div class="absoluteContainer">
+                <div id="page_title">
+                    Blog
+                </div>
+            </div>
+        </header>
+        <div id="wrapper">
+            <aside>
+                <div class="social_media_side">
+                    <a href="https://twitter.com/scottrwardle"><i class="fa fa-twitter" aria-hidden="true"></i></a>
+                    <a href="https://www.linkedin.com/in/scottwardle"><i class="fa fa-linkedin" aria-hidden="true"></i></a>
+                </div>
+                <h3>RECENT POST</h3>
+                <ul class="list_blog_title" id="list_blog_title">
+                </ul>
+            </aside>
+            <section>
+                <article class="blog_list">
+                    <header>
+                        <h2>Belated review of CPPCON 2017</h2>
+                        <p>
+                            <time datetime="2017-09-10">Dec 30th 2017</time>
+                        </p>
+                        <img src="img/21.jpg" class="blog_img">
+                    </header>
+                    <p>This year I did my 2nd CPPCON presentation this last September. It was a topic that is getting more and more important, packages and modules but I will talk about that later. You can see my presentation <a href="presentation.html">here</a>.
+                        For now it is January and most people have done their CPPCON write up months ago so lets do that first.
+                        <p>
+                            <p>My poor excuse for not writing about CPPCON sooner is, I was studying calculus at Langara college and it took a bit more time than I expected. Most people think I am relatively good at math, but most people also think I should
+                                be good at English as I am a native speaker, little do they know. But this is also a topic for another time.</p>
+                            <p>The reason to go to CPPCON, as everyone says, is the people. I’ll name-drop quite a few names here to help me remember everyone. (As I am not sure how many people will read this anyways. :)</p>
+                            <p>Each time I go to CPPCON I always met Fedor Pikus, Ben Deane, Sean Middleditch, Nicolas Guillemot, and Michael Wong, and many others. If you go to CPPCON for a few years in a row you can meet a lot of your “twitter” friends
+                                in real life. Once they know you they are much more likely to help you. This year I got to meet Matt Godbolt and Jason Turner for the first time. I listen to Rob Irving's and Jason Turner's and podcast CppCast as soon as
+                                it comes out and use Matt’s tools so it is nice to talk to these guys. </p>
+                            <p>In the it is a small world category, I met Charles Beattie and Ricardo Barreira currently at DeepMind. Ricardo worked on Mirror Edge and Charles knows Jason Sanmiya and Andy Younger (good friends of mine). We talked a lot about
+                                the build and integration setup at Google and how most games companies work. Charles says he is also dyslexic like me.
+                            </p>
+                            <p>One of the good things about taking so long to write this is if I still remember the talk it was either very good or so bad that I still rememeber it. Mostly with the frostbite changes going on at work I have been thinking
+                                about workflow and large scale code problems. I think you can see that in the presentations I rememeber.</p>
+                            <h3>Build systems talks</h3>
+                            <p><b><a href="https://www.youtube.com/watch?v=p9nH2vZ2mNo" target="_blank">Teresa Johnson “ThinLTO: Scalable and Incremental Link-Time Optimization”</a></b>
+                                <br><br> This was one of the best talks of CPPCON 2017. She talked about link time code generation and how it works at Google. This helped answer one big question I have had for years. How come Google does not use unity
+                                builds (AKA bulkbuilds or masterbuilds etc…). why don't they just include .cpp files until the compiler falls over. While I am still skeptical that ThinLTO is as good as unity builds for us at EA given the setup needed
+                                but it could cover a lot of the problems I see.
+                            </p>
+                            <p><b><a href="https://www.youtube.com/watch?v=7THzO-D0ta4" target="_blank">Isabella Muerte “There Will Be Build Systems: I Configure Your Milkshake”</a></b>
+                                <br><br> Isabella and I share a lot of ideas on build systems. She was trying to tell me that cmake was much better then EA packages a few years back this was another motivation for my talk. I wonder if she will make her
+                                own build system. I hope so.
+                            </p>
+                            <p><b><a href="https://www.youtube.com/watch?v=h8UoYG4dvH8" target="_blank">Dmitry Panin “Practical Techniques for Improving C++ Build Times”</a></b>
+                                <br><br> Dmitry talks about the build setup at facebook. It is a little like the talk that Teresa at Google did on link time code gen at google but Teresa is more of a compiler/linker dev and Dmitry is more of a build system
+                                guy so the point of view is different. I found out cool things like they don’t use unity builds as well and they make 2GB elf files in a few minutes of link time. This sounds like FIFA before unity builds.
+                            </p>
+                            <h3>Threading talks</h3>
+                            <p><b><a href="https://www.youtube.com/watch?v=ZQFzMfHIxng" target="_blank">Fedor Pikus “C++ atomics, from basic to advanced. What do they really do?”</a></b>
+                                <br><br>
+                                <b><a href="https://www.youtube.com/watch?v=rxQ5K9lo034">Fedor Pikus “Read, Copy, Update, then what? RCU for non-kernel programmers”</a></b>
+                                <br><br> Fedor finally got me to understand RCU with these talks. Fedor is a good speaker and is fun to learn from.
+                            </p>
+                            <h3>C++ madness talks</h3>
+                            <p><b><a href="https://www.youtube.com/watch?v=PJwd4JLYJJY" target="_blank">Ben Deane, and Jason Turner constexpr ALL the things.</a></b>
+                                <br><br> I didn’t see this talk in real time but did watch it afterwords. I would ask why would anyone want a JSON parser at compile time, but I guess the answer is becasue it is awesome. Just don’t do this in production
+                                :)
+                            </p>
+                            <h3>Large code base talks</h3>
+                            <p><b><a href="https://www.youtube.com/watch?v=B2XtqVZcSdM" target="_blank">David Sankel “So, you inherited a large code base...”</a></b>
+                                <br><br> David’s talk about working on a large code base. This talk has a great set of advice for all programmers. Neophilia is my favorite new word. Lack of follow though is a problem I have seen many times. He brings
+                                up clang tools to help automate changes.
+                            </p>
+                            <p><b><a href="https://www.youtube.com/watch?v=tISy7EJQPzI" target="_blank">Titus Winters “C++ as a "Live at Head" Language</a></b>
+                                <br><br>I do like a lot of Titus's ideas even if I find them difficult to imagine at EA. I assume he has to say things very strongly to herd all of the cats at Google. But if I had fewer platforms, fewer configs, more teams
+                                with more server and dev ops experience, more compiler experts and 10x lines of code, I think his ideas become a good if not great solution.
+                            </p>
+                            <h3>Specific application talks</h3>
+                            <p><b><a href="https://www.youtube.com/watch?v=mdPeXJ0eiGc" target="_blank">Nicolas Guillemot “Design Patterns for Low-Level Real-Time Rendering”</a></b>
+                                <br><br> Nicolas gave an overview of low-level GPU programming. This is a hard subject to cover in 1 hour. I did take a way a few things to look up after.
+                            </p>
+                            <p><b><a href="https://www.youtube.com/watch?v=F9tGa-hbmTU" target="_blank">Alan Bucior “Building Better Worlds: Developing a Procedural City Tool for Alien...”</a></b>
+                                <br><br> Alan didn’t go into too much detail as his talk was only 30min but does show how C++ is used on movies. You can start to get a feel for what it might be like to work on a large movie project from watching this.
+                            </p>
+                            <p><b><a href="https://www.youtube.com/watch?v=4AMhgkLjVHM" target="_blank">Billy Baker “Almost Unlimited Modern C++ in Kernel-Mode Applications”</a></b>
+                                <br><br> Billy talked about working with real time windows OS. This reminded me of working on console with odd OSs. This is a good talk if you want to understand some of the problems you have with large embedded work like
+                                airplane sims.
+                            </p>
+                            <h3>Tools and other C++ thing</h3>
+                            <p><b><a href="https://itunes.apple.com/us/podcast/cppcast/id968703120?mt=2" target="_blank">Rob Irving’s and Jason Turner’s CppCast
+
+</a></b>
+                                <br><br> If you have gone to CPPCON and liked the lunchtime conversations then maybe you would like this podcasts. They bring on a lot of the leading lights of C++ on and you get to see the people and some of their ideas.
+                            </p>
+                            <p><b><a href="https://godbolt.org/" target="_blank">Matt Godbolt’s Compiler Explorer - C++</a></b>
+                                <br><br> Since I was giving links I guess I should give out compiler explorer link.
+                            </p>
+                </article>
+            </section>
+        </div>
+        <footer>
+            <ul class="footer_nav">
+                <li><a href="index.html">HOME</a></li>
+                <li><a href="blog.html">BLOG</a></li>
+                <li><a href="about.html">ABOUT</a></li>
+                <li><a href="contact.html">CONTACT</a></li>
+                <li><a href="presentation.html">PRESENTATION</a></li>
+            </ul>
+            <div class="social_media">
+                <a href="https://twitter.com/scottrwardle"><i class="fa fa-twitter" aria-hidden="true"></i></a>
+                <a href="https://www.linkedin.com/in/scottwardle"><i class="fa fa-linkedin" aria-hidden="true"></i></a>
+            </div>
+            <p>&copy; SCOTT WARDLE 2020</p>
+        </footer>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="dist/js/animsition.min.js" charset="utf-8"></script>
+    <script src="js/menu.js"></script>
+    <script src="js/blog.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.animsition').animsition();
+        });
+    </script>
+</body>
+
+</html>

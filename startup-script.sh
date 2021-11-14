@@ -18,4 +18,6 @@ sudo apt-get remove purge apache2 apache2-utils
 sudo apt-get autoremove -y
 sudo apt install -y unzip
 
+sudo apt install git-all
+
 set +x

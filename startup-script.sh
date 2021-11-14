@@ -1,28 +1,21 @@
+#! /bin/bash
+set -x
 
-if ! [ -x "$(command -v go)" ]; then
-    echo 'Warning: Golang is not installed. installing!'
-    sudo apt update
-    wget https://golang.org/dl/go1.17.3.linux-amd64.tar.gz
-    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.17.3.linux-amd64.tar.gz
+sudo apt update
+wget https://golang.org/dl/go1.17.3.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.17.3.linux-amd64.tar.gz
+sudo echo "export GOPATH=\$HOME/go" > ~/.profile
+sudo echo "export PATH=\$PATH:/usr/local/go/bin:\$GOPATH/bin:~/bin/"  >> ~/.profile
+sudo echo "export GOBIN=\$GOPATH/bin" >> ~/.profile
+source ~/.profile
+mkdir -p ~/go/{bin,src,pkg}
+mkdir -p ~/log
+mkdir -p ~/bin
+mkdir -p ~/go/src/github.com/swardle/go-app/
+go version
 
-    sudo echo "export GOPATH=$HOME/go" >> ~/.profile
-    sudo echo "export PATH=$PATH:/usr/local/go/bin;$GOPATH/bin"  >> ~/.profile
-    sudo echo "export GOBIN=$GOPATH/bin" >> ~/.profile
-    source ~/.profile
-    mkdir -p ~/go/{bin,src,pkg}
-    go version
-else
-    echo 'OK: Golang is installed'
-    go version
-fi
+sudo apt-get remove purge apache2 apache2-utils
+sudo apt-get autoremove -y
+sudo apt install -y unzip
 
-if [ -x "$(command -v apache2])" ]; then
-    echo 'Warning: apache2 is installed uninstalling!'
-    sudo service apache2 stop
-    sudo apt-get remove purge apache2 apache2-utils
-    sudo apt-get autoremove -y
-    
-else
-    echo 'OK: Golang is installed'
-    go version
-fi
+set +x

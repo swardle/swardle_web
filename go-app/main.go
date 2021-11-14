@@ -25,7 +25,7 @@ func addSecretsToEnv() error {
 
 	// Build the request.
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: "projects/741705551761/secrets/SENDGRID_API_KEY/versions/latest",
+		Name: "projects/694671698910/secrets/SENDGRID_API_KEY/versions/latest",
 	}
 
 	// Call the API.

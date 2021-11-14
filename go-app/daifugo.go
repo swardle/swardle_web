@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/swardle/swardle_web/pkg/websocket"
+	"github.com/swardle/swardle_web/src/websocket"
 )
 
 func serveWs(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {

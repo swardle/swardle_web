@@ -32,8 +32,10 @@
 
     let sock = null;
     function wsConnect() {
-        let location = window.location.hostname + ":8080"
-        let url = "ws://" + location + "/ws";
+        var scheme = window.location.protocol == "https:" ? 'wss://' : 'ws://';
+        let url =  scheme + window.location.hostname
+                            + (location.port ? ':'+location.port: '')
+                            + '/ws';
         console.log("url:" + url);
         sock = new WebSocket(url);
         sock.onopen = function () {

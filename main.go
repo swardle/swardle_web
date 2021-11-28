@@ -149,9 +149,9 @@ func main() {
 
 	tlsConf.BuildNameToCertificate()
 
-	http.Handle("/", http.FileServer(http.Dir("./static")))
-	http.HandleFunc("/submit", sendHandle)
-	StartDaifugoServer()
+	//http.Handle("/", http.FileServer(http.Dir("./static")))
+	//http.HandleFunc("/submit", sendHandle)
+	//StartDaifugoServer()
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -101,6 +104,25 @@ func sendHandle(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, "thanks.html", http.StatusSeeOther)
 }
 
+// Certificate is saved at: /etc/letsencrypt/live/swardle.com/fullchain.pem
+// Key is saved at:         /etc/letsencrypt/live/swardle.com/privkey.pem
+
+var certPaths []string = []string{
+	"/etc/letsencrypt/live/swardle.com/",
+}
+
+type IHandler struct{}
+type SHandler struct{}
+
+func (ih IHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	hostDomain := strings.Split(r.Host, ":")[0]
+	http.Redirect(w, r, "https://"+hostDomain+":8181"+r.URL.Path, 302)
+}
+
+func (sh SHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "I hope you are feeling secure now")
+}
+
 func main() {
 	// Disable log prefixes such as the default timestamp.
 	// Prefix text prevents the message from being parsed as JSON.
@@ -112,6 +134,21 @@ func main() {
 		addSecretsToEnv()
 	}
 
+	// process Certificate for ssl/https
+	tlsConf := &tls.Config{}
+
+	for _, v := range certPaths {
+		certFile := path.Join(v, "fullchain.pem")
+		keyFile := path.Join(v, "privkey.pem")
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tlsConf.Certificates = append(tlsConf.Certificates, cert)
+	}
+
+	tlsConf.BuildNameToCertificate()
+
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/submit", sendHandle)
 	StartDaifugoServer()
@@ -122,8 +159,21 @@ func main() {
 		log.Printf("Defaulting to port %s", port)
 	}
 
-	log.Printf("Listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	go func() {
+		log.Printf("Listening on port %s", port)
+		if err := http.ListenAndServe(":"+port, IHandler{}); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	sserv := http.Server{
+		Addr:      ":8181",
+		Handler:   SHandler{},
+		TLSConfig: tlsConf,
+	}
+
+	if err := sserv.ListenAndServeTLS("", ""); err != nil {
 		log.Fatal(err)
 	}
+
 }

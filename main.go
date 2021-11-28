@@ -116,6 +116,8 @@ type SHandler struct{}
 
 func (ih IHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostDomain := strings.Split(r.Host, ":")[0]
+	newPath := "https://" + hostDomain + ":8181" + r.URL.Path
+	fmt.Printf("old=%s\nnew=%s", r.Host, newPath)
 	http.Redirect(w, r, "https://"+hostDomain+":8181"+r.URL.Path, 302)
 }
 

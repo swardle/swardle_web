@@ -8,13 +8,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"golang.org/x/crypto/acme/autocert"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
@@ -126,6 +126,7 @@ func (sh SHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
 	// Disable log prefixes such as the default timestamp.
 	// Prefix text prevents the message from being parsed as JSON.
 	// A timestamp is added when shipping logs to Cloud Logging.
@@ -136,20 +137,15 @@ func main() {
 		addSecretsToEnv()
 	}
 
-	// process Certificate for ssl/https
-	tlsConf := &tls.Config{}
-
-	for _, v := range certPaths {
-		certFile := path.Join(v, "fullchain.pem")
-		keyFile := path.Join(v, "privkey.pem")
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		tlsConf.Certificates = append(tlsConf.Certificates, cert)
+	certManager := autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist("swardle.com"), //Your domain here
+		Cache:      autocert.DirCache("certs"),            //Folder for storing certificates
 	}
 
-	tlsConf.BuildNameToCertificate()
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Hello world"))
+	})
 
 	//http.Handle("/", http.FileServer(http.Dir("./static")))
 	//http.HandleFunc("/submit", sendHandle)
@@ -161,21 +157,23 @@ func main() {
 		log.Printf("Defaulting to port %s", port)
 	}
 
+	server := &http.Server{
+		Addr: ":https",
+		TLSConfig: &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+		},
+	}
+
 	go func() {
 		log.Printf("Listening on port %s", port)
-		if err := http.ListenAndServe(":"+port, IHandler{}); err != nil {
+		if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
 			log.Fatal(err)
 		}
+
+		/*if err := http.ListenAndServe(":"+port, IHandler{}); err != nil {
+			log.Fatal(err)
+		}*/
 	}()
 
-	sserv := http.Server{
-		Addr:      ":8181",
-		Handler:   SHandler{},
-		TLSConfig: tlsConf,
-	}
-
-	if err := sserv.ListenAndServeTLS("", ""); err != nil {
-		log.Fatal(err)
-	}
-
+	log.Fatal(server.ListenAndServeTLS("", "")) //Key and cert are coming from Let's Encrypt
 }

@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/secretmanager v1.0.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/sendgrid/sendgrid-go v3.10.3+incompatible
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	google.golang.org/genproto v0.0.0-20211112145013-271947fe86fd
 )
 

@@ -117,12 +117,12 @@ type SHandler struct{}
 func (ih IHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostDomain := strings.Split(r.Host, ":")[0]
 	newPath := "https://" + hostDomain + ":8181" + r.URL.Path
-	fmt.Printf("old=%s\nnew=%s", r.Host, newPath)
-	http.Redirect(w, r, "https://"+hostDomain+":8181"+r.URL.Path, 302)
+	fmt.Printf("old=%s\nnew=%s\n", r.Host, newPath)
+	http.Redirect(w, r, newPath, 302)
 }
 
 func (sh SHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "I hope you are feeling secure now")
+	fmt.Fprintln(w, "I hope you are feeling secure now you are here")
 }
 
 func main() {

@@ -139,8 +139,8 @@ func main() {
 
 	certManager := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist("swardle.com"), //Your domain here
-		Cache:      autocert.DirCache("certs"),            //Folder for storing certificates
+		HostPolicy: autocert.HostWhitelist("swardle.com", "www.swardle.com"), //Your domain here
+		Cache:      autocert.DirCache("certs"),                               //Folder for storing certificates
 	}
 
 	/*

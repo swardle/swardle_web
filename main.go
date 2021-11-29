@@ -143,13 +143,15 @@ func main() {
 		Cache:      autocert.DirCache("certs"),            //Folder for storing certificates
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello world"))
-	})
+	/*
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("Hello world"))
+		})
+	*/
 
-	//http.Handle("/", http.FileServer(http.Dir("./static")))
-	//http.HandleFunc("/submit", sendHandle)
-	//StartDaifugoServer()
+	http.Handle("/", http.FileServer(http.Dir("./static")))
+	http.HandleFunc("/submit", sendHandle)
+	StartDaifugoServer()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -169,10 +171,6 @@ func main() {
 		if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
 			log.Fatal(err)
 		}
-
-		/*if err := http.ListenAndServe(":"+port, IHandler{}); err != nil {
-			log.Fatal(err)
-		}*/
 	}()
 
 	log.Fatal(server.ListenAndServeTLS("", "")) //Key and cert are coming from Let's Encrypt

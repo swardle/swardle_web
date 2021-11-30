@@ -21,7 +21,7 @@ sudo apt-get purge apache2 apache2-utils apache2.2-bin apache2-common
 sudo apt-get purge apache2 apache2-utils apache2-bin apache2.2-common
 sudo apt-get autoremove -y
 which apache2
-sudo service apache2 start
+# sudo service apache2 start
 
 # install unzip tools
 sudo apt install -y unzip

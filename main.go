@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
+	"runtime"
 	"time"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -86,9 +86,9 @@ func sendHandle(rw http.ResponseWriter, req *http.Request) {
 	}
 	msg += string(prettyJSON)
 
-	from := mail.NewEmail("FormMailer", "FormMailer@swardle.com")
+	from := mail.NewEmail("FormMailer", "swardle@swardle.com")
 	subject := "Message from Scott's Website"
-	to := mail.NewEmail("Scott Wardle", "swardle@gmail.com")
+	to := mail.NewEmail("Scott Wardle", "swardle@swardle.com")
 
 	message := mail.NewSingleEmail(from, subject, to, msg, msg)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
@@ -104,28 +104,12 @@ func sendHandle(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, "thanks.html", http.StatusSeeOther)
 }
 
-// Certificate is saved at: /etc/letsencrypt/live/swardle.com/fullchain.pem
-// Key is saved at:         /etc/letsencrypt/live/swardle.com/privkey.pem
-
-var certPaths []string = []string{
-	"/etc/letsencrypt/live/swardle.com/",
-}
-
-type IHandler struct{}
-type SHandler struct{}
-
-func (ih IHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	hostDomain := strings.Split(r.Host, ":")[0]
-	newPath := "https://" + hostDomain + ":8181" + r.URL.Path
-	fmt.Printf("old=%s\nnew=%s\n", r.Host, newPath)
-	http.Redirect(w, r, newPath, 302)
-}
-
-func (sh SHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "I hope you are feeling secure now you are here")
-}
-
 func main() {
+
+	isWin := false
+	if runtime.GOOS == "windows" {
+		isWin = true
+	}
 
 	// Disable log prefixes such as the default timestamp.
 	// Prefix text prevents the message from being parsed as JSON.
@@ -137,41 +121,42 @@ func main() {
 		addSecretsToEnv()
 	}
 
-	certManager := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist("swardle.com", "www.swardle.com"), //Your domain here
-		Cache:      autocert.DirCache("certs"),                               //Folder for storing certificates
-	}
-
-	/*
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Hello world"))
-		})
-	*/
-
-	http.Handle("/", http.FileServer(http.Dir("./static")))
-	http.HandleFunc("/submit", sendHandle)
-	StartDaifugoServer()
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 		log.Printf("Defaulting to port %s", port)
 	}
 
-	server := &http.Server{
-		Addr: ":https",
-		TLSConfig: &tls.Config{
-			GetCertificate: certManager.GetCertificate,
-		},
-	}
+	http.Handle("/", http.FileServer(http.Dir("./static")))
+	http.HandleFunc("/submit", sendHandle)
+	StartDaifugoServer()
 
-	go func() {
-		log.Printf("Listening on port %s", port)
-		if err := http.ListenAndServe(":http", certManager.HTTPHandler(nil)); err != nil {
+	if isWin {
+		log.Printf("Listening on port with http %s", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
 			log.Fatal(err)
 		}
-	}()
+	} else {
+		certManager := autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("swardle.com", "www.swardle.com"), //Your domain here
+			Cache:      autocert.DirCache("certs"),                               //Folder for storing certificates
+		}
+		server := &http.Server{
+			Addr: ":https",
+			TLSConfig: &tls.Config{
+				GetCertificate: certManager.GetCertificate,
+			},
+		}
 
-	log.Fatal(server.ListenAndServeTLS("", "")) //Key and cert are coming from Let's Encrypt
+		go func() {
+			log.Printf("Listening on port %s http and 443 for https", port)
+			if err := http.ListenAndServe(":"+port, certManager.HTTPHandler(nil)); err != nil {
+				log.Fatal(err)
+			}
+		}()
+
+		log.Fatal(server.ListenAndServeTLS("", "")) //Key and cert are coming from Let's Encrypt
+	}
+
 }

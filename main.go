@@ -88,7 +88,7 @@ func sendHandle(rw http.ResponseWriter, req *http.Request) {
 
 	from := mail.NewEmail("FormMailer", "swardle@swardle.com")
 	subject := "Message from Scott's Website"
-	to := mail.NewEmail("Scott Wardle", "swardle@swardle.com")
+	to := mail.NewEmail("Scott Wardle", "swardle@gmail.com")
 
 	message := mail.NewSingleEmail(from, subject, to, msg, msg)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))

@@ -123,7 +123,11 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		if isWin {
+			port = "8080"
+		} else {
+			port = "80"
+		}
 		log.Printf("Defaulting to port %s", port)
 	}
 

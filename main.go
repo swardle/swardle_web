@@ -34,7 +34,6 @@ func addReCaptchaSecretsToEnv(ctx context.Context, client *secretmanager.Client)
 	}
 
 	os.Setenv("RECAPTCHA_API_KEY", string(result.Payload.Data))
-	log.Printf("RECAPTCHA_API_KEY %s", os.Getenv("RECAPTCHA_API_KEY"))
 	return nil
 }
 

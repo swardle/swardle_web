@@ -33,34 +33,7 @@
 
 <body class="animsition">
     <div class="container">
-        <header class="header_top about">
-            <div class="hamburgler-menu">
-                <ul class="hamburgler-menu-list">
-                    <li><a class="animsition-link" href="index.html">HOME</a></li>
-                    <li><a class="animsition-link" href="blog.html">BLOG</a></li>
-                    <li><a class="animsition-link" href="about.html">ABOUT</li>
-                    <li><a class="animsition-link" href="contact.html">CONTACT</a></li>
-                    <li><a class="animsition-link" href="presentation.html">PRESENTATION</a></li>
-                </ul>
-            </div>
-            <div id="hamburgler" class="hamburgler-icon-wrapper">
-                <span class="hamburgler-icon"></span>
-            </div>
-            <a href="index.html"><img src="img/logo.png" class="logo"></a>
-            <nav>
-                <ul class="main_nav">
-                    <li><a class="animsition-link" href="index.html">HOME</a></li>
-                    <li><a class="animsition-link" href="blog.html">BLOG</a></li>
-                    <li><a class="animsition-link" href="about.html">ABOUT</a></li>
-                    <li><a class="animsition-link" href="contact.html">CONTACT</a></li>
-                    <li><a class="animsition-link" href="presentation.html">PRESENTATION</a></li>
-                </ul>
-            </nav>
-            <div class="absoluteContainer">
-                <div id="page_title">
-                    GET IN TOUCH
-                </div>
-            </div>
+        <header class="header_top about" id="indexheader">
         </header>
         <div id="wrapper">
             <section>
@@ -96,28 +69,17 @@
                 </form>
             </section>
         </div>
-        <footer>
-            <ul class="footer_nav">
-                <li><a href="index.html">HOME</a></li>
-                <li><a href="blog.html">BLOG</a></li>
-                <li><a href="about.html">ABOUT</a></li>
-                <li><a href="contact.html">CONTACT</a></li>
-                <li><a href="presentation.html">PRESENTATION</a></li>
-            </ul>
-            <div class="social_media">
-                <a href="https://twitter.com/scottrwardle"><i class="fa fa-twitter" aria-hidden="true"></i></a>
-                <a href="https://www.linkedin.com/in/scottwardle"><i class="fa fa-linkedin" aria-hidden="true"></i></a>
-            </div>
-            <p>&copy; SCOTT WARDLE 2020</p>
+        <footer id="indexfooter">
         </footer>
     </div>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="dist/js/animsition.min.js" charset="utf-8"></script>
-    <script src="js/menu.js"></script>
+    <script src="js/menu-templates.js"></script>
     <script src="js/form.js"></script>
     <script>
         $(document).ready(function() {
+            AddIndexHeaderFooter("GET IN TOUCH")
             $('.animsition').animsition();
         });
     </script>

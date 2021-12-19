@@ -391,9 +391,15 @@ p.message-error {
     text-align: left;
 }
 
+/********************** games-prelogin **********************/
+header.header_top.gamesprelogin {
+    background: url(../img/9.jpg) no-repeat center center;
+    background-size: cover;
+}
+
 
 /********************** presentation **********************/
-header.header_top.presen {
+header.header_top.presentation {
     background: url(../img/9.jpg) no-repeat center center;
     background-size: cover;
 }
@@ -431,6 +437,7 @@ iframe{
     margin-right: 35px;
     margin-bottom: 50px;
 }
+
 
 /********************** thank you **********************/
 img.thanks{

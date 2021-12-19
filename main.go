@@ -197,6 +197,7 @@ func main() {
 	// Prefix text prevents the message from being parsed as JSON.
 	// A timestamp is added when shipping logs to Cloud Logging.
 	log.SetFlags(0)
+	AddSecretToEnv()
 
 	port := os.Getenv("PORT")
 	if port == "" {

@@ -138,9 +138,17 @@ i.fa.fa-twitter {
     /*height: 820px;*/
 }
 
+section.home_text{
+    text-align: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 h1.scott_name {
     text-align: center;
-    padding-top: 250px;
+    /* padding-top: 250px; */
     font-size: 60px;
     letter-spacing: 30px;
     color: #ffffff;
@@ -438,7 +446,6 @@ iframe{
     margin-bottom: 50px;
 }
 
-
 /********************** thank you **********************/
 img.thanks{
     width: 80%;
@@ -517,22 +524,22 @@ header#scoreboard{
 
 /********************** media query **********************/
 
-@media(max-width:2560px){
+/* @media(max-width:2560px){
     h1.scott_name{
         padding-top:50%;
     }
-}
+} */
 
-@media(max-width:1440px){
+/* @media(max-width:1440px){
     h1.scott_name{
         padding-top:32%;
     }
-}
+} */
 
 @media(max-width: 768px) {
   
     h1.scott_name {
-        padding-top:47%;
+        /* padding-top:47%; */
         font-size: 4vw;
         letter-spacing: 12px;
     }
@@ -610,9 +617,9 @@ header#scoreboard{
         height: 340px;
     }
 
-    h1.scott_name {
+    /* h1.scott_name {
         padding-top:250px;
-    }
+    } */
 }
 
 @media(max-width: 425px) {

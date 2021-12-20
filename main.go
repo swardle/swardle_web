@@ -35,6 +35,10 @@ var (
 )
 
 func handleLogin(rw http.ResponseWriter, req *http.Request) {
+	fmt.Printf("Req: %s %s\n", req.Host, req.URL.Path)
+	if req.Host != "localhost:8080" {
+		googleOauthConfig.RedirectURL = "https://swardle.com/callback"
+	}
 	url := googleOauthConfig.AuthCodeURL(randomState)
 	http.Redirect(rw, req, url, http.StatusTemporaryRedirect)
 }

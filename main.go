@@ -13,6 +13,9 @@ import (
 	"runtime"
 	"time"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -20,38 +23,70 @@ import (
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
-func addReCaptchaSecretsToEnv(ctx context.Context, client *secretmanager.Client) error {
-	// Build the request.
-	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: "projects/694671698910/secrets/reCAPTCHA/versions/latest",
+var (
+	googleOauthConfig = &oauth2.Config{
+		RedirectURL:  "http://localhost:8080/callback", // "template/dlobby.html",
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+		Endpoint:     google.Endpoint,
 	}
+	randomState = "random"
+)
 
-	// Call the API.
-	result, err := client.AccessSecretVersion(ctx, req)
-	if err != nil {
-		fmt.Printf("failed to access secret version: %v", err)
-		return fmt.Errorf("failed to access secret version: %v", err)
-	}
-
-	os.Setenv("RECAPTCHA_API_KEY", string(result.Payload.Data))
-	return nil
+func handleLogin(rw http.ResponseWriter, req *http.Request) {
+	url := googleOauthConfig.AuthCodeURL(randomState)
+	http.Redirect(rw, req, url, http.StatusTemporaryRedirect)
 }
 
-func addSendGridSecretsToEnv(ctx context.Context, client *secretmanager.Client) error {
+func handleCallback(rw http.ResponseWriter, req *http.Request) {
+	if req.FormValue("State") == randomState {
+		fmt.Println("State is not valid")
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
+	}
 
+	token, err := googleOauthConfig.Exchange(oauth2.NoContext, req.FormValue("code"))
+	if err != nil {
+		fmt.Printf("could not get token: %s\n", err.Error())
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	url := fmt.Sprintf("https://www.googleapis.com/oauth2/v2/userinfo?access_token=%s", token.AccessToken)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Printf("could not create get request: %s\n", err.Error())
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	defer resp.Body.Close()
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("could not parse response: %s\n", err.Error())
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	fmt.Printf("Response: %s", content)
+	fmt.Fprintf(rw, "Response: %s", content)
+}
+
+func addSecretsToEnv(ctx context.Context, client *secretmanager.Client, secretName string, envName string) error {
 	// Build the request.
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: "projects/694671698910/secrets/SENDGRID_API_KEY/versions/latest",
+		Name: fmt.Sprintf("projects/694671698910/secrets/%s/versions/latest", secretName),
 	}
 
 	// Call the API.
 	result, err := client.AccessSecretVersion(ctx, req)
 	if err != nil {
-		fmt.Printf("failed to access secret version: %v", err)
-		return fmt.Errorf("failed to access secret version: %v", err)
+		fmt.Printf("failed to access secret version: %v %s %s", err, secretName, envName)
+		return fmt.Errorf("failed to access secret version: %v %s %s", err, secretName, envName)
 	}
 
-	os.Setenv("SENDGRID_API_KEY", string(result.Payload.Data))
+	os.Setenv(envName, string(result.Payload.Data))
 	return nil
 }
 
@@ -176,12 +211,21 @@ func AddSecretToEnv() {
 	// using "GOOGLE_APPLICATION_CREDENTIALS" on windows
 	apikey := os.Getenv("SENDGRID_API_KEY")
 	if apikey == "" {
-		addSendGridSecretsToEnv(ctx, client)
+		addSecretsToEnv(ctx, client, "SENDGRID_API_KEY", "SENDGRID_API_KEY")
 	}
 
 	apikey = os.Getenv("RECAPTCHA_API_KEY")
 	if apikey == "" {
-		addReCaptchaSecretsToEnv(ctx, client)
+		addSecretsToEnv(ctx, client, "reCAPTCHA", "RECAPTCHA_API_KEY")
+	}
+
+	if googleOauthConfig.ClientID == "" {
+		addSecretsToEnv(ctx, client, "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_ID")
+		googleOauthConfig.ClientID = os.Getenv("GOOGLE_CLIENT_ID")
+	}
+	if googleOauthConfig.ClientSecret == "" {
+		addSecretsToEnv(ctx, client, "GOOGLE_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET")
+		googleOauthConfig.ClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	}
 }
 
@@ -210,6 +254,8 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/submit", sendHandle)
+	http.HandleFunc("/login", handleLogin)
+	http.HandleFunc("/callback", handleCallback)
 	StartDaifugoServer()
 
 	if isWin {

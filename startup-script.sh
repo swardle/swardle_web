@@ -33,7 +33,6 @@ sudo apt install git-all
 git clone https://github.com/swardle/swardle_web.git
 cd swardle_web
 go mod init github.com/swardle/swardle_web
-go mod tidy
 go build
 
 # get ssl for https (has user input?) 

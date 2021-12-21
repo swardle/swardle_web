@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,17 +12,35 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"github.com/google/uuid"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	secretmanagerpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
+
+type sessionRow struct {
+	SID    uuid.UUID
+	UserID string
+	Cookie *http.Cookie
+}
+
+type userRow struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+	Locale        string `json:"locale"`
+}
 
 var (
 	googleOauthConfig = &oauth2.Config{
@@ -31,21 +50,124 @@ var (
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 		Endpoint:     google.Endpoint,
 	}
-	randomState = "random"
+	randomState   = "random"
+	gAppLock      sync.RWMutex
+	gSessionTable = map[string]sessionRow{}
+	gUserTable    = map[string]userRow{}
 )
+
+// Create a session and cookies
+func CreateSession() (sessionRow, error) {
+	id := uuid.New()
+	idEncoded := base64.StdEncoding.EncodeToString([]byte(id.String()))
+	fmt.Printf("str = %s encoded = %s\n", id.String(), idEncoded)
+	cookie := &http.Cookie{
+		Name:     "session",
+		Value:    idEncoded,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+	}
+
+	var session = sessionRow{
+		SID:    id,
+		UserID: "",
+		Cookie: cookie,
+	}
+	fmt.Printf("Session id %v\n", session)
+
+	gAppLock.Lock()
+	defer gAppLock.Unlock()
+	gSessionTable[id.String()] = session
+	return session, nil
+}
+
+func AddUser(sid string, user userRow) error {
+	fmt.Printf("User %v\n", user)
+
+	gAppLock.Lock()
+	defer gAppLock.Unlock()
+	session, found := gSessionTable[sid]
+	if !found {
+		return fmt.Errorf("can't find session")
+	}
+	session.UserID = user.ID
+	fmt.Printf("User added to session %v\n", session)
+
+	return nil
+}
 
 func handleLogin(rw http.ResponseWriter, req *http.Request) {
 	fmt.Printf("Req: %s %s\n", req.Host, req.URL.Path)
 	if req.Host != "localhost:8080" {
 		googleOauthConfig.RedirectURL = "https://swardle.com/callback"
 	}
-	url := googleOauthConfig.AuthCodeURL(randomState)
+	var session = sessionRow{}
+	cookie, err := req.Cookie("session")
+
+	// if we get a good cookie get the session id from it.
+	// sessionID base64 Encoded
+	if err == nil {
+		cookieValue, err := base64.StdEncoding.DecodeString(cookie.Value)
+		cookieValueStr := string(cookieValue)
+		if err != nil {
+			fmt.Println("cookieValue is not valid")
+			http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		}
+		fmt.Printf("%s=%s\r\n", cookie.Name, cookieValueStr)
+		sid := cookieValueStr
+
+		gAppLock.RLock()
+		var found bool
+		session, found = gSessionTable[sid]
+		gAppLock.RUnlock()
+		if !found {
+			session, _ = CreateSession()
+			http.SetCookie(rw, session.Cookie)
+		}
+	} else {
+		session, _ = CreateSession()
+		http.SetCookie(rw, session.Cookie)
+	}
+
+	fmt.Printf("rederect to callback using session id %v\n", session.SID)
+	url := googleOauthConfig.AuthCodeURL(session.SID.String())
+	fmt.Printf("rederect to callback using url %v\n", url)
 	http.Redirect(rw, req, url, http.StatusTemporaryRedirect)
 }
 
 func handleCallback(rw http.ResponseWriter, req *http.Request) {
-	if req.FormValue("State") == randomState {
-		fmt.Println("State is not valid")
+	sid := req.FormValue("state")
+	fmt.Printf("State SessionID sid\n%v\n", sid)
+	gAppLock.RLock()
+	session, found := gSessionTable[sid]
+	gAppLock.RUnlock()
+
+	if !found {
+		fmt.Println("State SessionID is not valid")
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	cookie, err := req.Cookie("session")
+	if err != nil {
+		fmt.Println("cookie is not valid")
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+	}
+
+	cookieValue, err := base64.StdEncoding.DecodeString(cookie.Value)
+	cookieValueStr := string(cookieValue)
+	if err != nil {
+		fmt.Println("cookieValue is not valid")
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+	}
+	fmt.Printf("%s=%s\r\n", cookie.Name, cookieValueStr)
+	cookieSID := cookieValueStr
+	fmt.Printf("Cookie SessionID\n%v\n", cookieSID)
+	fmt.Printf("State SessionID sid\n%v\n", sid)
+
+	if cookieSID != sid {
+		fmt.Println("Cookie SessionID is not valid")
 		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
 		return
 	}
@@ -75,6 +197,17 @@ func handleCallback(rw http.ResponseWriter, req *http.Request) {
 
 	fmt.Printf("Response: %s", content)
 	fmt.Fprintf(rw, "Response: %s", content)
+
+	var user userRow
+	err = json.Unmarshal([]byte(content), &user)
+
+	if err != nil {
+		fmt.Printf("could not parse user data: %s\n", err.Error())
+		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	AddUser(session.SID.String(), user)
 }
 
 func addSecretsToEnv(ctx context.Context, client *secretmanager.Client, secretName string, envName string) error {

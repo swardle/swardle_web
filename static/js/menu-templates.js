@@ -1,11 +1,3 @@
-let hamburgler = document.getElementById('hamburgler')
-if(hamburgler) {
-    hamburgler.addEventListener('click', checkNav);
-}
-window.addEventListener("keyup", function(e) {
-    if (e.keyCode == 27) closeNav();
-}, false);
-
 function checkNav() {
     if (document.body.classList.contains('hamburgler-active')) {
         closeNav();
@@ -57,7 +49,7 @@ function AddIndexHeaderFooter (absoluteContainer_title) {
         <span class="hamburgler-icon"></span>
     </div>
     <a href="index.html"><img src="img/logo.png" class="logo"></a>
-    <nav>
+    <   q>
         <ul class="main_nav">
             <li><a class="animsition-link" href="index.html">HOME</a></li>
             <li><a class="animsition-link" href="blog.html">BLOG</a></li>
@@ -104,6 +96,15 @@ function AddIndexHeaderFooter (absoluteContainer_title) {
         str = str.replace("absoluteContainer_page_title", absoluteContainer_title)
         overview.innerHTML = str
     }
+
+    let hamburgler = document.getElementById('hamburgler')
+    if(hamburgler) {
+        hamburgler.addEventListener('click', checkNav);
+    }
+
+    window.addEventListener("keyup", function(e) {
+        if (e.key == "Escape") { closeNav(); }
+    }, false);
 
 }
 

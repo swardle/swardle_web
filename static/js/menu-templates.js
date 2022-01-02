@@ -49,7 +49,7 @@ function AddIndexHeaderFooter (absoluteContainer_title) {
         <span class="hamburgler-icon"></span>
     </div>
     <a href="index.html"><img src="img/logo.png" class="logo"></a>
-    <   q>
+    <nav>
         <ul class="main_nav">
             <li><a class="animsition-link" href="index.html">HOME</a></li>
             <li><a class="animsition-link" href="blog.html">BLOG</a></li>

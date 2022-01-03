@@ -20,7 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	"github.com/swardle/swardle_web/crypt"
+	"github.com/swardle/swardle_web/cryptlib"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -68,12 +68,12 @@ var (
 func LoadAdminAndUserData() {
 	app_key_hex := os.Getenv("SWARDLE_APP_DATA_KEY")
 	app_key, err := hex.DecodeString(app_key_hex)
-	ciphertext, err := crypt.ReadFromFile("data.ase")
+	ciphertext, err := cryptlib.ReadFromFile("data.ase")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	plaintext := crypt.Decrypt(ciphertext, app_key)
+	plaintext := cryptlib.Decrypt(ciphertext, app_key)
 
 	var userData UserData
 	json.Unmarshal(plaintext, &userData)

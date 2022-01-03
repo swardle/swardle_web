@@ -1,4 +1,4 @@
-package crypt
+package cryptlib
 
 import (
 	"crypto/aes"

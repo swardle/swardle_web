@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/swardle/swardle_web/crypt"
+	"github.com/swardle/swardle_web/cryptlib"
 )
 
 func main() {
@@ -30,24 +30,24 @@ func main() {
 	switch *mode {
 	case "encrypt":
 		fmt.Printf("%s reading\n", *plainTextFileName)
-		plaintext, err := crypt.ReadFromFile(*plainTextFileName)
+		plaintext, err := cryptlib.ReadFromFile(*plainTextFileName)
 		if err != nil {
 			fmt.Printf("%s File is not found\n", *plainTextFileName)
 		} else {
-			ciphertext := crypt.Encrypt(plaintext, key)
+			ciphertext := cryptlib.Encrypt(plaintext, key)
 			fmt.Printf("%s Writing\n", *encryptedFileName)
-			crypt.WriteToFile(ciphertext, *encryptedFileName)
+			cryptlib.WriteToFile(ciphertext, *encryptedFileName)
 		}
 	case "decrypt":
 		fmt.Printf("%s reading\n", *encryptedFileName)
-		if ciphertext, err := crypt.ReadFromFile(*encryptedFileName); err != nil {
+		if ciphertext, err := cryptlib.ReadFromFile(*encryptedFileName); err != nil {
 			fmt.Printf("%s File is not found\n", *encryptedFileName)
 		} else {
-			plaintext := crypt.Decrypt(ciphertext, key)
+			plaintext := cryptlib.Decrypt(ciphertext, key)
 			fmt.Println(string(plaintext))
 			if *writeFile {
 				fmt.Printf("%s Writing\n", *plainTextFileName)
-				crypt.WriteToFile(plaintext, *plainTextFileName)
+				cryptlib.WriteToFile(plaintext, *plainTextFileName)
 			}
 		}
 	}

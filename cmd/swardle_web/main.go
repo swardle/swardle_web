@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"github.com/swardle/swardle_web/crypt"
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -356,6 +358,11 @@ func AddSecretToEnv() {
 		addSecretsToEnv(ctx, client, "reCAPTCHA", "RECAPTCHA_API_KEY")
 	}
 
+	apikey = os.Getenv("SWARDLE_APP_DATA_KEY")
+	if apikey == "" {
+		addSecretsToEnv(ctx, client, "SWARDLE_APP_DATA_KEY", "SWARDLE_APP_DATA_KEY")
+	}
+
 	if googleOauthConfig.ClientID == "" {
 		addSecretsToEnv(ctx, client, "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_ID")
 		googleOauthConfig.ClientID = os.Getenv("GOOGLE_CLIENT_ID")
@@ -364,6 +371,26 @@ func AddSecretToEnv() {
 		addSecretsToEnv(ctx, client, "GOOGLE_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET")
 		googleOauthConfig.ClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	}
+}
+
+type UserData struct {
+	Admin       []string `json:"admin"`
+	CreateGames []string `json:"createGames"`
+}
+
+func LoadAdminAndUserData() UserData {
+	app_key_hex := os.Getenv("SWARDLE_APP_DATA_KEY")
+	app_key, err := hex.DecodeString(app_key_hex)
+	ciphertext, err := crypt.ReadFromFile("data.ase")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	plaintext := crypt.Decrypt(ciphertext, app_key)
+
+	var userData UserData
+	json.Unmarshal(plaintext, &userData)
+	return userData
 }
 
 func main() {

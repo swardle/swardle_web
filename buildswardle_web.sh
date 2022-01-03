@@ -1,0 +1,1 @@
+go build github.com/swardle/swardle_web/cmd/swardle_web

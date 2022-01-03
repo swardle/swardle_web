@@ -44,6 +44,11 @@ type userRow struct {
 	Locale        string `json:"locale"`
 }
 
+type UserData struct {
+	Admin       []string `json:"admin"`
+	CreateGames []string `json:"createGames"`
+}
+
 var (
 	googleOauthConfig = &oauth2.Config{
 		RedirectURL:  "http://localhost:8080/callback", // "template/dlobby.html",
@@ -52,11 +57,35 @@ var (
 		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 		Endpoint:     google.Endpoint,
 	}
-	randomState   = "random"
-	gAppLock      sync.RWMutex
-	gSessionTable = map[string]sessionRow{}
-	gUserTable    = map[string]userRow{}
+	randomState       = "random"
+	gAppLock          sync.RWMutex
+	gSessionTable     = map[string]sessionRow{}
+	gAdminUsers       = map[string]int{}
+	gCreateGamesUsers = map[string]int{}
+	gUserTable        = map[string]userRow{}
 )
+
+func LoadAdminAndUserData() {
+	app_key_hex := os.Getenv("SWARDLE_APP_DATA_KEY")
+	app_key, err := hex.DecodeString(app_key_hex)
+	ciphertext, err := crypt.ReadFromFile("data.ase")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	plaintext := crypt.Decrypt(ciphertext, app_key)
+
+	var userData UserData
+	json.Unmarshal(plaintext, &userData)
+	gAppLock.Lock()
+	for _, emailAdr := range userData.Admin {
+		gAdminUsers[emailAdr] = 1
+	}
+	for _, emailAdr := range userData.CreateGames {
+		gCreateGamesUsers[emailAdr] = 1
+	}
+	defer gAppLock.Unlock()
+}
 
 // Create a session and cookies
 func CreateSession() (sessionRow, error) {
@@ -373,26 +402,6 @@ func AddSecretToEnv() {
 	}
 }
 
-type UserData struct {
-	Admin       []string `json:"admin"`
-	CreateGames []string `json:"createGames"`
-}
-
-func LoadAdminAndUserData() UserData {
-	app_key_hex := os.Getenv("SWARDLE_APP_DATA_KEY")
-	app_key, err := hex.DecodeString(app_key_hex)
-	ciphertext, err := crypt.ReadFromFile("data.ase")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	plaintext := crypt.Decrypt(ciphertext, app_key)
-
-	var userData UserData
-	json.Unmarshal(plaintext, &userData)
-	return userData
-}
-
 func main() {
 
 	isWin := false
@@ -415,6 +424,8 @@ func main() {
 		}
 		log.Printf("Defaulting to port %s", port)
 	}
+
+	LoadAdminAndUserData()
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/submit", sendHandle)

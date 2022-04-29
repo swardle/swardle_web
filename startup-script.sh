@@ -17,7 +17,7 @@ go version
 # uninstall apache2 
 sudo service apache2 stop
 sudo apt-get purge apache2 apache2-utils apache2.2-bin apache2-common
-//or 
+# or 
 sudo apt-get purge apache2 apache2-utils apache2-bin apache2.2-common
 sudo apt-get autoremove -y
 which apache2

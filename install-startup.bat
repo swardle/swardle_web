@@ -4,7 +4,8 @@ timeout/t 60 /nobreak
 call gcloud compute ssh swardle_gmail_com@instance-1 --command="mkdir bin"
 call gcloud compute ssh swardle_gmail_com@instance-1 --command="mkdir log"
 call gcloud compute scp startup-script.sh swardle_gmail_com@instance-1:./
-call gcloud compute ssh swardle_gmail_com@instance-1 --command="source ~/startup-script.sh &> ~/log/startup.txt"
+echo running startup-script.sh on remote computer
+call gcloud compute ssh swardle_gmail_com@instance-1 --command="source ~/startup-script.sh 2>&1 | tee ~/log/startup.txt"
 call gcloud compute scp swardle_gmail_com@instance-1:./log/startup.txt . && code startup.txt
 
 rem gcloud compute instances add-metadata instance-1 --metadata-from-file=startup-script=startup-script.sh

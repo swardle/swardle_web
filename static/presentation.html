@@ -39,7 +39,39 @@
             <section>
                 <div class="video_desc">
                     <header>
-                        <h3>CppCon 2017: Scott Wardle “ EA’s Secret Weapon: Packages and Modules”</h3>
+                        <h3>Google Game Dev Summit 2022 “Stadia Adventures in slow server code on Unity”</h3>
+                    </header>
+                    <article>
+                        <p>
+                            I talk about how I sped up my Unity server code in debug by up to 50x. 
+                        </p>
+                        <p>
+                            First I found and helped Unity fix a bug in il2cpp that speeds up debug builds by up to 5x.  This bug affected all il2cpp platforms, not just Stadia, so iOS, PS4, Android etc. The bug was in sequence points, the code that helps synchronize your code with the debugger. The code for these sequence points are generated every line where you can put a breakpoint, so even if this code is fast it will still slow down your code quite a bit.  
+                        </p>
+                        <p>
+                            After I show that you can use burst even without Jobs and get another 5x to 10x! As this gets rid of the sequence points altogether but you do have to debug with the different native debugger. So in the end I made my code 50x faster in debug with some fairly small targeted changes. 
+                        </p>
+                    </article>
+                </div>
+                <div class="videowrapper">
+                    <div onclick="this.nextElementSibling.style.display='block'; this.style.display='none'">
+                        <img src="img/25.jpg" style="cursor:pointer; padding-bottom: 3%;" />
+                    </div>
+                    <div style="display:none">
+                        <iframe width="640" height="360" src="https://www.youtube.com/embed/s-SpWSEWYbU" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+                <p><b>Download PDF</b></p>
+                <a href="https://github.com/swardle/unity-jobs-vs-ms-threads-sample/raw/main/%5BGGDS22_227%5D-Slides-Stadia-Adventures-in-slow-server-code-on-Unity.pdf" download>Google Game Dev Summit 2022 Stadia Adventures in slow server code on Unity.pdf</a>
+                <p><b>Github sample code</b></p>
+                <a href="https://github.com/swardle/unity-jobs-vs-ms-threads-sample">unity jobs vs ms threads sample</a>
+            </section>
+
+            <section>
+                <div class="video_desc">
+                    <header>
+                        <h3>CppCon 2017: Scott Wardle “EA’s Secret Weapon: Packages and Modules”</h3>
                     </header>
                     <article>
                         <p>

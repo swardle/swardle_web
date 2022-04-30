@@ -6,7 +6,7 @@ sudo apt update
 wget https://golang.org/dl/go1.17.3.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.17.3.linux-amd64.tar.gz
 sudo echo "export GOPATH=\$HOME/go" > ~/.profile
-sudo echo "export PATH=\$PATH:/usr/local/go/bin:\$GOPATH/bin:~/bin/"  >> ~/.profile
+sudo echo "export PATH=/usr/local/go/bin:\$GOPATH/bin:~/bin/:\$PATH"  >> ~/.profile
 sudo echo "export GOBIN=\$GOPATH/bin" >> ~/.profile
 source ~/.profile
 mkdir -p ~/go/{bin,src,pkg}
@@ -43,7 +43,7 @@ git clone https://github.com/swardle/swardle_web.git
 cd swardle_web
 go mod init github.com/swardle/swardle_web
 go mod tidy
-go build
+go build github.com/swardle/swardle_web/cmd/swardle_web
 
 # get ssl for https (has user input?) 
 sudo snap install core; sudo snap refresh core

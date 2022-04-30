@@ -242,9 +242,10 @@ func handleCallback(rw http.ResponseWriter, req *http.Request) {
 }
 
 func addSecretsToEnv(ctx context.Context, client *secretmanager.Client, secretName string, envName string) error {
+	projectId := os.Getenv("PROJECT_ID")
 	// Build the request.
 	req := &secretmanagerpb.AccessSecretVersionRequest{
-		Name: fmt.Sprintf("projects/694671698910/secrets/%s/versions/latest", secretName),
+		Name: fmt.Sprintf("projects/%s/secrets/%s/versions/latest", projectId, secretName),
 	}
 
 	// Call the API.
@@ -336,7 +337,7 @@ func sendHandle(rw http.ResponseWriter, req *http.Request) {
 	datestr := fmt.Sprintf(now.Format("2006-01-02 at 15:04:05"))
 
 	msg := ""
-	msg += fmt.Sprintf("Message from Portfolio site.  Submitted on %s.\n\n", datestr)
+	msg += fmt.Sprintf("Message from swardle_web site.  Submitted on %s.\n\n", datestr)
 
 	prettyJSON, err := json.MarshalIndent(c, "", "    ")
 	if err != nil {

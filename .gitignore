@@ -2,9 +2,11 @@
 # src\github.com\
 # src\golang.org\
 # src\google.golang.org\
-go-app.exe
-
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
 AddSecretToEnv.bat
 crypt.exe
 data.json
-swardle_web.exe

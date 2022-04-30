@@ -26,13 +26,23 @@ which apache2
 # install unzip tools
 sudo apt install -y unzip
 
+# install rsync
+sudo apt-get install rsync
+
 # install git
 sudo apt install git-all
 
+# include killall
+sudo apt-get install psmisc
+
 # clone website from git
+sudo killall swardle_web
+ps -aux
+rm -rf swardle_web
 git clone https://github.com/swardle/swardle_web.git
 cd swardle_web
 go mod init github.com/swardle/swardle_web
+go mod tidy
 go build
 
 # get ssl for https (has user input?) 
@@ -44,6 +54,6 @@ sudo certbot certonly --standalone -d swardle.com -d www.swardle.com
 # Key is saved at:         /etc/letsencrypt/live/swardle.com/privkey.pem
 
 # run the server in the background
-sudo PORT=80 ./swardle_web &
+nohup sudo PORT=80 PROJECT_ID=694671698910 ./swardle_web &
 
 set +x

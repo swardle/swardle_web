@@ -1,1 +1,0 @@
-cloud compute instances set-service-account "instance-1" --service-account "694671698910-compute@developer.gserviceaccount.com" --scopes "https://www.googleapis.com/auth/cloud-platform"

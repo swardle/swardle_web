@@ -28,10 +28,17 @@ import (
 )
 
 type sessionRow struct {
-	SID    uuid.UUID
-	UserID string
-	Cookie *http.Cookie
+	SID       uuid.UUID
+	UserID    string
+	Cookie    *http.Cookie
+	CreatedAt time.Time
 }
+
+const (
+	sessionTTL        = 24 * time.Hour
+	sessionCleanupInt = 1 * time.Hour
+	maxSessions       = 10000
+)
 
 type userRow struct {
 	ID            string `json:"id"`
@@ -87,11 +94,28 @@ func LoadAdminAndUserData() {
 	defer gAppLock.Unlock()
 }
 
+func startSessionCleanup() {
+	ticker := time.NewTicker(sessionCleanupInt)
+	go func() {
+		for range ticker.C {
+			cutoff := time.Now().Add(-sessionTTL)
+			gAppLock.Lock()
+			for sid, row := range gSessionTable {
+				if row.CreatedAt.Before(cutoff) {
+					delete(gSessionTable, sid)
+				}
+			}
+			gAppLock.Unlock()
+		}
+	}()
+}
+
 // Create a session and cookies
 func CreateSession() (sessionRow, error) {
 	id := uuid.New()
 	idEncoded := base64.StdEncoding.EncodeToString([]byte(id.String()))
 	fmt.Printf("str = %s encoded = %s\n", id.String(), idEncoded)
+	now := time.Now()
 	cookie := &http.Cookie{
 		Name:     "session",
 		Value:    idEncoded,
@@ -101,14 +125,36 @@ func CreateSession() (sessionRow, error) {
 	}
 
 	var session = sessionRow{
-		SID:    id,
-		UserID: "",
-		Cookie: cookie,
+		SID:       id,
+		UserID:    "",
+		Cookie:    cookie,
+		CreatedAt: now,
 	}
 	fmt.Printf("Session id %v\n", session)
 
 	gAppLock.Lock()
 	defer gAppLock.Unlock()
+	if len(gSessionTable) >= maxSessions {
+		cutoff := now.Add(-sessionTTL)
+		for sid, row := range gSessionTable {
+			if row.CreatedAt.Before(cutoff) {
+				delete(gSessionTable, sid)
+			}
+		}
+		if len(gSessionTable) >= maxSessions {
+			var oldestSID string
+			var oldestTime time.Time
+			for sid, row := range gSessionTable {
+				if oldestSID == "" || row.CreatedAt.Before(oldestTime) {
+					oldestSID = sid
+					oldestTime = row.CreatedAt
+				}
+			}
+			if oldestSID != "" {
+				delete(gSessionTable, oldestSID)
+			}
+		}
+	}
 	gSessionTable[id.String()] = session
 	return session, nil
 }
@@ -144,6 +190,7 @@ func handleLogin(rw http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			fmt.Println("cookieValue is not valid")
 			http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+			return
 		}
 		fmt.Printf("%s=%s\r\n", cookie.Name, cookieValueStr)
 		sid := cookieValueStr
@@ -184,6 +231,7 @@ func handleCallback(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Println("cookie is not valid")
 		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
 	}
 
 	cookieValue, err := base64.StdEncoding.DecodeString(cookie.Value)
@@ -191,6 +239,7 @@ func handleCallback(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Println("cookieValue is not valid")
 		http.Redirect(rw, req, "/", http.StatusTemporaryRedirect)
+		return
 	}
 	fmt.Printf("%s=%s\r\n", cookie.Name, cookieValueStr)
 	cookieSID := cookieValueStr
@@ -427,6 +476,7 @@ func main() {
 	}
 
 	LoadAdminAndUserData()
+	startSessionCleanup()
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/submit", sendHandle)
@@ -440,21 +490,33 @@ func main() {
 			log.Fatal(err)
 		}
 	} else {
+		certDir := os.Getenv("CERT_DIR")
+		if certDir == "" {
+			certDir = "certs"
+		}
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist("swardle.com", "www.swardle.com"), //Your domain here
-			Cache:      autocert.DirCache("certs"),                               //Folder for storing certificates
+			Cache:      autocert.DirCache(certDir),                               //Folder for storing certificates
 		}
+		tlsCfg := certManager.TLSConfig()
+		tlsCfg.MinVersion = tls.VersionTLS12
 		server := &http.Server{
-			Addr: ":https",
-			TLSConfig: &tls.Config{
-				GetCertificate: certManager.GetCertificate,
-			},
+			Addr:              ":https",
+			TLSConfig:         tlsCfg,
+			ReadHeaderTimeout: 10 * time.Second,
+			IdleTimeout:       120 * time.Second,
+		}
+		httpServer := &http.Server{
+			Addr:              ":" + port,
+			Handler:           certManager.HTTPHandler(nil),
+			ReadHeaderTimeout: 10 * time.Second,
+			IdleTimeout:       120 * time.Second,
 		}
 
 		go func() {
-			log.Printf("Listening on port %s http and 443 for https", port)
-			if err := http.ListenAndServe(":"+port, certManager.HTTPHandler(nil)); err != nil {
+			log.Printf("Listening on port %s http and 443 for https (cert cache: %s)", port, certDir)
+			if err := httpServer.ListenAndServe(); err != nil {
 				log.Fatal(err)
 			}
 		}()

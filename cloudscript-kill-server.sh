@@ -1,8 +1,5 @@
-#! /bin/bash
-set -x
+#!/usr/bin/env bash
+set -euo pipefail
 
-sudo killall swardle_web
-ps -aux | grep swardle_web
-
-set +x
-exit
+sudo systemctl stop swardle_web.service || true
+sudo systemctl status swardle_web.service --no-pager || true

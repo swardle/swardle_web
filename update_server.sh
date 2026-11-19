@@ -1,11 +1,17 @@
-call gcloud config configurations activate scottwardle
-call gcloud compute scp cloudscript-kill-server.sh scottwardle_gmail_com@instance-1:./
-echo running cloudscript-kill-server.sh on remote computer
-call gcloud compute ssh scottwardle_gmail_com@instance-1 --command="source ~/cloudscript-kill-server.sh 2>&1 < /dev/null | tee ~/log/kill-server.txt"
+#!/usr/bin/env bash
+set -euo pipefail
 
-rsync -aP . scottwardle_gmail_com@instance-1.us-west1-b.swardle-compute-engine:swardle_web
+PROJECT="swardle-compute-engine"
+ZONE="us-west1-b"
+INSTANCE="instance-1"
 
-call gcloud compute scp cloudscript-boot-server.sh scottwardle_gmail_com@instance-1:./
-echo running cloudscript-boot-server.sh on remote computer
-call gcloud compute ssh scottwardle_gmail_com@instance-1 --command="source ~/cloudscript-boot-server.sh 2>&1 < /dev/null | tee ~/log/boot-server.txt"
+gcloud compute scp \
+  --project="${PROJECT}" \
+  --zone="${ZONE}" \
+  cloudscript-boot-server.sh "${INSTANCE}:~/cloudscript-boot-server.sh"
 
+echo "Running cloudscript-boot-server.sh on ${INSTANCE}..."
+gcloud compute ssh "${INSTANCE}" \
+  --project="${PROJECT}" \
+  --zone="${ZONE}" \
+  --command="bash ~/cloudscript-boot-server.sh"

@@ -40,7 +40,6 @@ function AddIndexHeaderFooter (absoluteContainer_title) {
             <li><a class="animsition-link" href="index.html">HOME</a></li>
             <li><a class="animsition-link" href="blog.html">BLOG</a></li>
             <li><a class="animsition-link" href="about.html">ABOUT</a></li>
-            <li><a class="animsition-link" href="games-prelogin.html">GAMES</a></li>
             <li><a class="animsition-link" href="contact.html">CONTACT</a></li>
             <li><a class="animsition-link" href="presentation.html">PRESENTATION</a></li>
         </ul>
@@ -54,7 +53,6 @@ function AddIndexHeaderFooter (absoluteContainer_title) {
             <li><a class="animsition-link" href="index.html">HOME</a></li>
             <li><a class="animsition-link" href="blog.html">BLOG</a></li>
             <li><a class="animsition-link" href="about.html">ABOUT</a></li>
-            <li><a class="animsition-link" href="games-prelogin.html">GAMES</a></li>
             <li><a class="animsition-link" href="contact.html">CONTACT</a></li>
             <li><a class="animsition-link" href="presentation.html">PRESENTATION</a></li>
         </ul>
@@ -83,7 +81,6 @@ function AddIndexHeaderFooter (absoluteContainer_title) {
         <li><a href="index.html">HOME</a></li>
         <li><a href="blog.html">BLOG</a></li>
         <li><a href="about.html">ABOUT</a></li>
-        <li><a class="animsition-link" href="games-prelogin.html">GAMES</a></li>
         <li><a href="contact.html">CONTACT</a></li>
         <li><a href="presentation.html">PRESENTATION</a></li>
     </ul>

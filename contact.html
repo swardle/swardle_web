@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+﻿<!DOCTYPE HTML>
 <html>
 
 <head>
@@ -33,17 +33,31 @@
 
 <body class="animsition">
     <div class="container">
+        <header class="header_top about" id="indexheader">
+        </header>
         <div id="wrapper">
-            <section><img src="img/20.png" class="thanks"></section>
-            <a href="index.html" class="back_link">Back to page</a>
+            <section>
+                <div class="social_media top">
+                    <a href="https://twitter.com/scottrwardle" rel="noopener noreferrer"><i class="fa fa-twitter" aria-hidden="true"></i></a>
+                    <a href="https://www.linkedin.com/in/scottwardle" rel="noopener noreferrer"><i class="fa fa-linkedin" aria-hidden="true"></i></a>
+                </div>
+                <article style="text-align: center; padding: 20px 0 60px 0;">
+                    <p>The best ways to reach me:</p>
+                    <p><a href="https://www.linkedin.com/in/scottwardle" rel="noopener noreferrer">LinkedIn — linkedin.com/in/scottwardle</a></p>
+                    <p><a href="https://twitter.com/scottrwardle" rel="noopener noreferrer">X / Twitter — @scottrwardle</a></p>
+                    <p><a href="https://github.com/swardle" rel="noopener noreferrer">GitHub — github.com/swardle</a></p>
+                </article>
+            </section>
         </div>
+        <footer id="indexfooter">
+        </footer>
     </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="dist/js/animsition.min.js" charset="utf-8"></script>
     <script src="js/menu-templates.js"></script>
     <script>
         $(document).ready(function() {
-            AddIndexHeaderFooter("thanks")
+            AddIndexHeaderFooter("GET IN TOUCH")
             $('.animsition').animsition();
         });
     </script>

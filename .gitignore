@@ -1,12 +1,2 @@
-# src\cloud.google.com\
-# src\github.com\
-# src\golang.org\
-# src\google.golang.org\
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-AddSecretToEnv.bat
-crypt.exe
-data.json
+.DS_Store
+Thumbs.db
